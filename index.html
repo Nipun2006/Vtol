@@ -390,7 +390,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <h2 id="cube">Cube flight controller</h2>
 <p>The brain is our <strong>Cube Orange+</strong> running ArduPilot Plane. The Cube's IMUs sit on a heated, vibration-isolated board inside the cube, and it plugs into a carrier board that holds all the connectors.</p>
 <ul>
-<li><strong>Carrier board:</strong> check which carrier came with our Cube; the name is printed on the board. The standard ADS-B carrier has every port used below. A mini carrier is smaller and lighter but has fewer ports, so check it has two telemetry ports, CAN and enough outputs for the output map before wiring.</li>
+<li><strong>Carrier board:</strong> ours is the Standard Set's ADS-B carrier board, which has every port used below. It also has a built-in ADS-B receiver that picks up nearby manned aircraft (optional, see the parameter table).</li>
 <li><strong>Size and weight:</strong> the Cube on its carrier is much bigger and heavier than a small racing-style controller. Weigh yours, put it on the mass sheet, and design the fuselage bay around it, with room for the cables to bend.</li>
 <li><strong>Mounting:</strong> the IMUs are already isolated, so mount the carrier firmly on foam pads, arrow facing forward. Don't add a second wobbly soft mount. After the first hover, check vibration in the log (<code>VIBE</code>): below about 30 m/s² and no clipping.</li>
 <li><strong>Firmware:</strong> in Mission Planner, Install Firmware → Plane → board <code>CubeOrangePlus</code> (not <code>CubeOrange</code>: the two need different firmware), latest stable release.</li>
@@ -603,6 +603,11 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <td><code>FS_GCS_ENABL</code></td>
 <td>0 to start</td>
 <td>Whether losing the dashboard link triggers a failsafe (see Live dashboard)</td>
+</tr>
+<tr>
+<td><code>ADSB_TYPE</code></td>
+<td>1 (optional)</td>
+<td>Uses the carrier's built-in ADS-B receiver. Its internal serial port also needs MAVLink settings: check the CubePilot ADS-B carrier docs for the values.</td>
 </tr>
 <tr>
 <td><code>Q_RTL_MODE</code></td>
