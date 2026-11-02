@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mass and CG Calculator — Tri Tilt-Rotor VTOL</title>
+<meta name="description" content="Mass, centre of gravity, hover thrust split and wing numbers for the tri tilt-rotor VTOL.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16181d;--muted:#5d6370;--rule:#dcdfe4;--paper:#fbfbf9;--panel:#f1f2ef;--accent:#c2410c;--ok:#15803d;--warn:#b45309;--bad:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 "IBM Plex Sans",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+header{border-bottom:1px solid var(--rule);padding:36px 0 24px;margin-bottom:28px}
+.kicker{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:32px;letter-spacing:-.02em;margin:12px 0 6px;font-weight:600}
+header p{margin:0;color:var(--muted);max-width:80ch}
+header a{color:var(--muted)}
+h2{font:500 11.5px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.card{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:16px;margin-bottom:24px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font:500 11px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--ink);padding:6px 8px 6px 0}
+td{border-bottom:1px solid var(--rule);padding:4px 8px 4px 0;vertical-align:middle}
+td.num,th.num{text-align:right;font-family:"IBM Plex Mono",monospace}
+input{font:inherit;color:inherit;border:1px solid transparent;border-radius:4px;padding:4px 6px;background:transparent;width:100%}
+input:hover{border-color:var(--rule)}
+input:focus{border-color:var(--ink);outline:none;background:#fff}
+input[type=number]{font-family:"IBM Plex Mono",monospace;text-align:right}
+input[type=checkbox]{width:auto;accent-color:var(--accent)}
+td.q input{width:52px}td.m input,td.x input{width:80px}
+.btn{font:500 13.5px "IBM Plex Sans",sans-serif;border:1px solid var(--rule);background:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;color:var(--ink)}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.del{border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px}
+.del:hover{color:var(--bad)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.stat{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.stat:last-child{border-bottom:0}
+.stat b{font:500 15px "IBM Plex Mono",monospace;text-align:right}
+.big{font:600 30px "IBM Plex Mono",monospace;letter-spacing:-.02em}
+.big small{font-size:14px;color:var(--muted);font-weight:500}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.verdict{font-size:13.5px;margin:8px 0 0;padding:8px 10px;border-radius:6px;background:var(--panel)}
+.settings{display:grid;grid-template-columns:1fr 92px;gap:4px 10px;align-items:center;font-size:13.5px}
+.settings input{border-color:var(--rule);background:#fff}
+.note{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+svg text{font-family:"IBM Plex Mono",monospace}
+.est td:first-child input{font-style:italic}
+@media (max-width:960px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><div class="wrap">
+<div class="kicker">Design tool</div>
+<h1>Mass and CG calculator</h1>
+<p>List every part with its mass and position. Positions (x) are in mm from the wing's leading edge, positive towards the tail. The page works out the CG, how hard each motor works in hover, and where the battery needs to go. Rows in <em>italics</em> are estimates: weigh the part and tick "weighed". Your data is saved in this browser. <a href="/#layout">← Back to the layout</a></p>
+</div></header>
+
+<div class="wrap grid">
+<div>
+  <section class="card">
+    <h2>Centre of gravity along the aircraft</h2>
+    <svg id="strip" viewBox="0 0 900 190" width="100%" role="img" aria-label="Part positions and CG along the fuselage"></svg>
+  </section>
+  <section class="card">
+    <h2>Parts</h2>
+    <table>
+      <thead><tr><th>Part</th><th class="num">Qty</th><th class="num">Mass each (g)</th><th class="num">x (mm)</th><th class="num">Total (g)</th><th>Weighed</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="actions">
+      <button class="btn" id="add">+ Add part</button>
+      <button class="btn" id="csv">Download CSV</button>
+      <button class="btn" id="reset">Reset to defaults</button>
+    </div>
+  </section>
+</div>
+
+<div>
+  <section class="card">
+    <h2>Result</h2>
+    <div class="big" id="cgBig">—</div>
+    <div class="stat"><span>All-up weight</span><b id="auw">—</b></div>
+    <div class="stat"><span>CG from leading edge</span><b id="cgx">—</b></div>
+    <div class="stat"><span>Target CG</span><b id="cgt">—</b></div>
+    <div class="stat"><span>Parts still estimated</span><b id="estMass">—</b></div>
+    <p class="verdict" id="cgVerdict"></p>
+  </section>
+
+  <section class="card">
+    <h2>Battery position</h2>
+    <div class="stat"><span>Battery row</span><b><select id="battRow" class="btn"></select></b></div>
+    <div class="stat"><span>Battery x for the target CG</span><b id="battX">—</b></div>
+    <div class="actions"><button class="btn primary" id="applyBatt">Move battery there</button></div>
+    <p class="note">The battery is the trim weight. Make its tray long enough to slide it ±30 mm either side of this point.</p>
+  </section>
+
+  <section class="card">
+    <h2>Hover thrust split</h2>
+    <div class="stat"><span>Each front motor</span><b id="tf">—</b></div>
+    <div class="stat"><span>Rear motor</span><b id="tr">—</b></div>
+    <div class="stat"><span>Thrust-to-weight</span><b id="tw">—</b></div>
+    <p class="verdict" id="hoverVerdict"></p>
+  </section>
+
+  <section class="card">
+    <h2>Wing</h2>
+    <div class="stat"><span>Wing loading</span><b id="wl">—</b></div>
+    <div class="stat"><span>Stall speed</span><b id="vs">—</b></div>
+    <div class="stat"><span>Minimum flying speed (1.4 × stall)</span><b id="vmin">—</b></div>
+    <div class="stat"><span>Level flight at 0° wing angle</span><b id="v0">—</b></div>
+  </section>
+
+  <section class="card">
+    <h2>Layout and aircraft settings</h2>
+    <div class="settings" id="settings"></div>
+    <p class="note">Front pivot x: the front tilt axis, which passes through the motor and prop centre of mass. 3D lift numbers assume a NACA 4412 wing with aspect ratio about 4.8.</p>
+  </section>
+</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const STORE = 'vtol-cg-v1';
+
+  const DEFAULT_SETTINGS = {
+    chord: { label: 'Wing chord (mm)', v: 250 },
+    span: { label: 'Wingspan (mm)', v: 1200 },
+    target: { label: 'Target CG (% of chord)', v: 25 },
+    xf: { label: 'Front tilt pivot x (mm)', v: -118 },
+    xr: { label: 'Rear motor x (mm)', v: 422 },
+    tmax: { label: 'Max thrust per motor (g)', v: 1300 },
+    clmax: { label: 'Wing CLmax (3D)', v: 1.1 },
+    cl0: { label: 'Wing CL at 0° (3D)', v: 0.29 },
+  };
+
+  // [name, qty, mass each g, x mm, weighed]
+  const DEFAULT_PARTS = [
+    ['Front motor 1100 kV', 2, 75, -118, true],
+    ['Tilt servo MG995', 2, 42, -95, true],
+    ['Tilt pod and mount (printed)', 2, 20, -100, false],
+    ['Front ESC 60 A', 2, 16, 20, true],
+    ['Rear motor 1100 kV', 1, 75, 422, true],
+    ['Rear motor mount (printed)', 1, 15, 422, false],
+    ['Rear ESC 60 A', 1, 16, 300, true],
+    ['Battery 3S', 1, 165, -153, true],
+    ['Cube + carrier', 1, 75, -80, true],
+    ['Power module + servo BEC', 1, 30, -60, false],
+    ['GPS + mast', 1, 35, 150, false],
+    ['RC receiver', 1, 10, 100, false],
+    ['Telemetry radio + antenna', 1, 25, 180, false],
+    ['Wiring and connectors', 1, 60, 50, false],
+    ['Aileron servo (9 g)', 2, 9, 150, false],
+    ['Elevator / rudder servo (9 g)', 2, 9, 600, false],
+    ['Wing, LW-PLA (printed)', 1, 280, 105, false],
+    ['Carbon spar', 1, 35, 70, false],
+    ['Nose pod (printed)', 1, 90, -120, false],
+    ['Tail boom (carbon tube)', 1, 35, 520, false],
+    ['Tail surfaces (printed)', 1, 50, 730, false],
+  ];
+
+  let state = load();
+
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE));
+      if (s && Array.isArray(s.parts) && s.settings) {
+        for (const k in DEFAULT_SETTINGS) if (typeof s.settings[k] !== 'number') s.settings[k] = DEFAULT_SETTINGS[k].v;
+        return s;
+      }
+    } catch (e) { /* fall through */ }
+    return defaults();
+  }
+
+  function defaults() {
+    const settings = {};
+    for (const k in DEFAULT_SETTINGS) settings[k] = DEFAULT_SETTINGS[k].v;
+    return {
+      settings,
+      parts: DEFAULT_PARTS.map(([name, qty, mass, x, weighed]) => ({ name, qty, mass, x, weighed })),
+      battery: 7,
+    };
+  }
+
+  function save() { localStorage.setItem(STORE, JSON.stringify(state)); }
+
+  function el(tag, props, children) {
+    const e = document.createElement(tag);
+    Object.assign(e, props || {});
+    (children || []).forEach((c) => e.append(c));
+    return e;
+  }
+
+  function buildSettings() {
+    const box = $('settings');
+    box.innerHTML = '';
+    for (const k in DEFAULT_SETTINGS) {
+      const input = el('input', { type: 'number', value: state.settings[k], step: k.startsWith('cl') ? 0.01 : 1, id: 'set-' + k });
+      input.addEventListener('input', () => {
+        const v = parseFloat(input.value);
+        if (Number.isFinite(v)) { state.settings[k] = v; save(); compute(); }
+      });
+      box.append(el('label', { htmlFor: 'set-' + k, textContent: DEFAULT_SETTINGS[k].label }), input);
+    }
+  }
+
+  function buildRows() {
+    const tb = $('rows');
+    tb.innerHTML = '';
+    state.parts.forEach((p, i) => {
+      const tr = el('tr', { className: p.weighed ? '' : 'est' });
+      const field = (key, type, cls) => {
+        const input = el('input', { type, value: p[key], ariaLabel: key });
+        if (type === 'number') input.step = key === 'qty' ? 1 : 'any';
+        input.addEventListener('input', () => {
+          p[key] = type === 'number' ? parseFloat(input.value) || 0 : input.value;
+          save();
+          compute();
+          if (key === 'name') buildBatterySelect();
+        });
+        return el('td', { className: cls || '' }, [input]);
+      };
+      const chk = el('input', { type: 'checkbox', checked: p.weighed, ariaLabel: 'weighed' });
+      chk.addEventListener('change', () => { p.weighed = chk.checked; tr.className = p.weighed ? '' : 'est'; save(); compute(); });
+      const del = el('button', { className: 'del', textContent: '×', title: 'Remove part' });
+      del.addEventListener('click', () => {
+        state.parts.splice(i, 1);
+        if (state.battery === i) state.battery = -1;
+        else if (state.battery > i) state.battery--;
+        save(); buildRows(); buildBatterySelect(); compute();
+      });
+      tr.append(field('name', 'text'), field('qty', 'number', 'num q'), field('mass', 'number', 'num m'), field('x', 'number', 'num x'),
+        el('td', { className: 'num', id: 'tot' + i }), el('td', {}, [chk]), el('td', {}, [del]));
+      tb.append(tr);
+    });
+  }
+
+  function buildBatterySelect() {
+    const sel = $('battRow');
+    sel.innerHTML = '';
+    state.parts.forEach((p, i) => sel.append(el('option', { value: i, textContent: p.name || 'Part ' + (i + 1), selected: i === state.battery })));
+    if (state.battery < 0 || state.battery >= state.parts.length) {
+      state.battery = state.parts.findIndex((p) => /batt/i.test(p.name));
+      if (state.battery >= 0) sel.value = state.battery;
+    }
+  }
+
+  function fmtG(g) { return g >= 1000 ? (g / 1000).toFixed(3) + ' kg' : Math.round(g) + ' g'; }
+
+  function compute() {
+    const S = state.settings;
+    let M = 0, Mx = 0, est = 0;
+    state.parts.forEach((p, i) => {
+      const m = (p.qty || 0) * (p.mass || 0);
+      M += m; Mx += m * (p.x || 0);
+      if (!p.weighed) est += m;
+      const td = $('tot' + i);
+      if (td) td.textContent = Math.round(m);
+    });
+    const cg = M ? Mx / M : 0;
+    const pct = cg / S.chord * 100;
+    const target = S.target / 100 * S.chord;
+    $('auw').textContent = fmtG(M);
+    $('cgx').textContent = M ? cg.toFixed(0) + ' mm' : '—';
+    $('cgt').textContent = `${target.toFixed(0)} mm (${S.target}%)`;
+    $('estMass').textContent = `${fmtG(est)} (${M ? Math.round(est / M * 100) : 0}%)`;
+    $('cgBig').innerHTML = M ? `${pct.toFixed(1)}<small>% of chord</small>` : '—';
+    const off = cg - target;
+    const v = $('cgVerdict');
+    if (!M) v.textContent = '';
+    else if (Math.abs(off) <= 5) { v.className = 'verdict ok'; v.textContent = `On target (${off >= 0 ? '+' : ''}${off.toFixed(0)} mm).`; }
+    else if (pct < 20) { v.className = 'verdict warn'; v.textContent = `${(-off).toFixed(0)} mm nose-heavy. Safe but sluggish in pitch; move the battery back.`; }
+    else if (pct > 30) { v.className = 'verdict bad'; v.textContent = `${off.toFixed(0)} mm tail-heavy. Unstable in forward flight; move the battery forward before flying.`; }
+    else { v.className = 'verdict warn'; v.textContent = `${Math.abs(off).toFixed(0)} mm ${off > 0 ? 'behind' : 'ahead of'} the target, still inside 20–30%. Trim with the battery.`; }
+
+    // battery solve
+    const b = state.parts[state.battery];
+    if (b && b.qty * b.mass > 0) {
+      const mb = b.qty * b.mass;
+      const xb = (target * M - (Mx - mb * b.x)) / mb;
+      $('battX').textContent = `${xb.toFixed(0)} mm` + (xb < 0 ? ` (${(-xb).toFixed(0)} ahead of LE)` : '');
+      $('applyBatt').disabled = false;
+      $('applyBatt').onclick = () => { b.x = Math.round(xb); save(); buildRows(); compute(); };
+    } else { $('battX').textContent = 'Pick the battery row'; $('applyBatt').disabled = true; }
+
+    // hover split: 2*Tf*(cg - xf) = Tr*(xr - cg), with 2*Tf + Tr = W
+    const a = cg - S.xf, bArm = S.xr - cg;
+    const hv = $('hoverVerdict');
+    if (M && a > 0 && bArm > 0) {
+      const Tr = M * a / (a + bArm), Tf = (M - Tr) / 2;
+      const pf = Tf / S.tmax * 100, pr = Tr / S.tmax * 100;
+      $('tf').textContent = `${Tf.toFixed(0)} g · ${pf.toFixed(0)}% of max`;
+      $('tr').textContent = `${Tr.toFixed(0)} g · ${pr.toFixed(0)}% of max`;
+      $('tw').textContent = (3 * S.tmax / M).toFixed(2);
+      const worst = Math.max(pf, pr), spread = Math.abs(pf - pr);
+      if (worst > 60) { hv.className = 'verdict bad'; hv.textContent = `One motor needs ${worst.toFixed(0)}% of its thrust just to hover. That leaves too little for control: cut weight or move the CG.`; }
+      else if (spread > 12) { hv.className = 'verdict warn'; hv.textContent = `Unequal: the ${pr > pf ? 'rear' : 'front'} motor${pr > pf ? '' : 's'} work much harder. Aim for the rear arm to be twice the front arm (b = 2a): now a = ${a.toFixed(0)}, b = ${bArm.toFixed(0)} mm.`; }
+      else { hv.className = 'verdict ok'; hv.textContent = `Balanced: a = ${a.toFixed(0)} mm, b = ${bArm.toFixed(0)} mm. Every motor has plenty of thrust left for control.`; }
+    } else { $('tf').textContent = $('tr').textContent = $('tw').textContent = '—'; hv.className = 'verdict bad'; hv.textContent = M ? 'The CG must sit between the front pivots and the rear motor.' : ''; }
+
+    // wing
+    const area = S.span * S.chord / 1e6; // m^2
+    const W = M / 1000 * 9.81, q = 0.5 * 1.225 * area;
+    $('wl').textContent = area ? `${(M / (area * 100)).toFixed(1)} g/dm²` : '—';
+    const vs = Math.sqrt(W / (q * S.clmax));
+    $('vs').textContent = Number.isFinite(vs) ? vs.toFixed(1) + ' m/s' : '—';
+    $('vmin').textContent = Number.isFinite(vs) ? (1.4 * vs).toFixed(1) + ' m/s' : '—';
+    const v0 = Math.sqrt(W / (q * S.cl0));
+    $('v0').textContent = Number.isFinite(v0) ? v0.toFixed(1) + ' m/s' : '—';
+
+    drawStrip(cg, target, M);
+  }
+
+  function drawStrip(cg, target, M) {
+    const S = state.settings;
+    const xs = state.parts.map((p) => p.x || 0).concat([0, S.chord, S.xf, S.xr]);
+    const lo = Math.min(...xs) - 60, hi = Math.max(...xs) + 60;
+    const X = (x) => 20 + (x - lo) / (hi - lo) * 860;
+    const maxM = Math.max(1, ...state.parts.map((p) => p.qty * p.mass));
+    let svg = '';
+    svg += `<rect x="${X(0)}" y="60" width="${X(S.chord) - X(0)}" height="40" fill="#f1f2ef" stroke="#dcdfe4"/>`;
+    svg += `<text x="${(X(0) + X(S.chord)) / 2}" y="84" text-anchor="middle" font-size="12" fill="#5d6370">wing</text>`;
+    svg += `<line x1="20" y1="80" x2="880" y2="80" stroke="#dcdfe4"/>`;
+    for (const [x, label] of [[S.xf, 'front pivots'], [S.xr, 'rear motor']]) {
+      svg += `<line x1="${X(x)}" y1="40" x2="${X(x)}" y2="120" stroke="#16181d" stroke-dasharray="3 4"/>`;
+      svg += `<text x="${X(x)}" y="34" text-anchor="middle" font-size="12" fill="#16181d">${label}</text>`;
+    }
+    state.parts.forEach((p) => {
+      const m = p.qty * p.mass;
+      if (m <= 0) return;
+      const r = 3 + 13 * Math.sqrt(m / maxM);
+      svg += `<circle cx="${X(p.x || 0)}" cy="80" r="${r.toFixed(1)}" fill="${p.weighed ? '#16181d' : '#fff'}" fill-opacity="${p.weighed ? 0.55 : 1}" stroke="#16181d"><title>${(p.name || '').replace(/[<&"]/g, '')}: ${Math.round(m)} g at ${p.x} mm</title></circle>`;
+    });
+    svg += `<line x1="${X(target)}" y1="128" x2="${X(target)}" y2="150" stroke="#15803d" stroke-width="3"/>`;
+    svg += `<text x="${X(target)}" y="166" text-anchor="middle" font-size="12" fill="#15803d">target</text>`;
+    if (M) {
+      svg += `<path d="M${X(cg)},126 l-8,-14 h16 z" fill="#c2410c"/>`;
+      svg += `<text x="${X(cg)}" y="184" text-anchor="middle" font-size="12" font-weight="600" fill="#c2410c">CG ${cg.toFixed(0)} mm</text>`;
+    }
+    svg += `<text x="20" y="184" font-size="11" fill="#5d6370">nose ←</text><text x="880" y="184" text-anchor="end" font-size="11" fill="#5d6370">→ tail</text>`;
+    svg += `<text x="20" y="16" font-size="11" fill="#5d6370">filled = weighed · hollow = estimate · circle size = mass</text>`;
+    $('strip').innerHTML = svg;
+  }
+
+  $('add').addEventListener('click', () => {
+    state.parts.push({ name: 'New part', qty: 1, mass: 0, x: 0, weighed: false });
+    save(); buildRows(); buildBatterySelect(); compute();
+    const inputs = $('rows').querySelectorAll('tr:last-child input');
+    if (inputs[0]) { inputs[0].focus(); inputs[0].select(); }
+  });
+  $('reset').addEventListener('click', () => {
+    if (!confirm('Replace your parts list and settings with the defaults?')) return;
+    state = defaults(); save(); buildSettings(); buildRows(); buildBatterySelect(); compute();
+  });
+  $('battRow').addEventListener('change', (e) => { state.battery = Number(e.target.value); save(); compute(); });
+  $('csv').addEventListener('click', () => {
+    const q = (s) => '"' + String(s).replace(/"/g, '""') + '"';
+    const lines = [['part', 'qty', 'mass_each_g', 'x_mm', 'total_g', 'weighed'].join(',')]
+      .concat(state.parts.map((p) => [q(p.name), p.qty, p.mass, p.x, p.qty * p.mass, p.weighed ? 'yes' : 'no'].join(',')));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+    a.download = 'vtol-mass-cg.csv';
+    a.click();
+  });
+
+  buildSettings();
+  buildRows();
+  buildBatterySelect();
+  compute();
+})();
+</script>
+</body></html>
