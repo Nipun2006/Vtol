@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tri Tilt-Rotor VTOL — Build Reference</title>
+<meta name="description" content="Design, tilt mechanism, ArduPilot setup and flight-test reference for a 3-motor tilt-rotor VTOL.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16181d;--muted:#5d6370;--rule:#dcdfe4;--paper:#fbfbf9;--panel:#f1f2ef;--accent:#c2410c}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 "IBM Plex Sans",system-ui,sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px;display:grid;grid-template-columns:220px 1fr;gap:56px}
+header.top{border-bottom:1px solid var(--rule);margin-bottom:40px}
+header.top .wrap{display:block;padding-top:56px;padding-bottom:36px}
+.kicker{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:40px;line-height:1.15;letter-spacing:-.02em;margin:14px 0 10px;font-weight:600}
+.meta{font:13px "IBM Plex Mono",monospace;color:var(--muted)}
+nav{position:sticky;top:28px;align-self:start;font-size:14px;display:flex;flex-direction:column;border-left:1px solid var(--rule)}
+nav a{color:var(--muted);text-decoration:none;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent}
+nav a:hover{color:var(--ink);border-left-color:var(--accent)}
+main{min-width:0;padding-bottom:96px}
+h2{font-size:24px;letter-spacing:-.01em;margin:64px 0 12px;padding-top:20px;border-top:1px solid var(--rule);font-weight:600}
+main h2:first-child{margin-top:0;border-top:0;padding-top:0}
+h3{font-size:15px;margin:32px 0 6px;font-weight:600}
+p,li{max-width:72ch}ul,ol{padding-left:22px}li{margin:5px 0}li::marker{color:var(--muted)}
+code{font:500 .86em "IBM Plex Mono",monospace;background:var(--panel);padding:1px 5px;border-radius:3px}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14px}
+th{text-align:left;font:500 11.5px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--ink);padding:8px 12px 8px 0}
+td{border-bottom:1px solid var(--rule);padding:10px 12px 10px 0;vertical-align:top}
+td:first-child{font-weight:500}
+#specs td:nth-child(2),#specs+p+table td:nth-child(2){min-width:90px;background:repeating-linear-gradient(90deg,transparent 0 6px,var(--rule) 6px 7px) bottom/100% 1px no-repeat}
+.formulas{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin:22px 0}
+.formulas div{background:#fff;padding:14px 16px}
+.formulas span{display:block;font:500 11px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.formulas code{background:none;padding:0;font-size:14px}
+li.task{list-style:none;margin-left:-22px;display:flex;gap:10px;align-items:baseline}
+li.task input{accent-color:var(--accent);transform:translateY(2px)}
+footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color:var(--muted)}
+@media (max-width:860px){.wrap{grid-template-columns:1fr;gap:0}nav{display:none}h1{font-size:30px}table{display:block;overflow-x:auto}}
+@media print{nav{display:none}.wrap{display:block}body{background:#fff}}
+</style></head><body>
+<header class="top"><div class="wrap"><div class="kicker">Build reference</div>
+<h1>Tri Tilt-Rotor VTOL</h1>
+<div class="meta">2 November 2026 &nbsp;·&nbsp; 3 motors · 2 tilting · ArduPilot QuadPlane</div></div></header>
+<div class="wrap"><nav><a href="#mission">Mission and scope</a><a href="#departments">Departments</a><a href="#design">Design process</a><a href="#wing">3D-printed wing</a><a href="#tilt">Tilt mechanism with MG995</a><a href="#specs">Spec sheet</a><a href="#avionics">Electronics and ArduPilot setup</a><a href="#preflight">Pre-flight checks and test ladder</a><a href="#risks">Risks and mitigations</a></nav><main><h2 id="mission">Mission and scope</h2>
+<p>The goal is a 3-motor tilt-rotor VTOL that hovers stably and tilts its front motors on command. A full transition to forward flight is the stretch goal, not the pass mark.</p>
+<ul>
+<li><strong>Must have:</strong> stable hover in QHOVER, tilt mechanism working on the bench and in flight.</li>
+<li><strong>Stretch:</strong> first transition from hover to forward flight and back.</li>
+<li><strong>Reference layout:</strong> the E-flite Convergence, which ArduPilot supports natively:<ul>
+<li>Two front motors on servo tilt mounts: pointing up for hover, forward for cruise. Small differential tilt gives yaw in hover.</li>
+<li>One fixed rear motor for hover only. It switches off in forward flight.</li>
+<li>Fully 3D-printed wing on a carbon spar, with printed pods, tilt mounts and joints.</li>
+<li>Flight controller running ArduPilot Plane (QuadPlane, tricopter frame, vectored tilt).</li>
+</ul>
+</li>
+<li><strong>Rule:</strong> every flight needs a clear go/no-go call. No props on during bench work, no untethered first hover.</li>
+</ul>
+<h2 id="departments">Departments</h2>
+<p>The work splits into four departments, each owning one part of the aircraft.</p>
+<table>
+<thead>
+<tr>
+<th>Department</th>
+<th>Responsibilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Airframe and structures</td>
+<td>3D-printed wing and fuselage, CAD for all printed parts, spar and joints, CG placement, weight budget</td>
+</tr>
+<tr>
+<td>Propulsion and tilt</td>
+<td>Motor, prop and ESC checks, thrust stand, tilt mechanism with MG995 servos</td>
+</tr>
+<tr>
+<td>Avionics and firmware</td>
+<td>Flight controller wiring and power, ArduPilot setup, SITL practice, pilot training</td>
+</tr>
+<tr>
+<td>Test ops and logistics</td>
+<td>Mass sheet, spares, checklists, flight-safety rules, flight log</td>
+</tr>
+</tbody>
+</table>
+<h2 id="design">Design process</h2>
+<p>Size the aircraft from the parts we already have, in this order. Each step feeds the next, and the CG is the number everything hangs on.</p>
+<ol>
+<li><strong>Mass budget.</strong> Weigh every part: motors, ESCs, 2 MG995s, battery, flight controller, GPS, receiver, wiring. Add 40–50% for the airframe and prints. That sum is the target all-up weight (AUW).</li>
+<li><strong>Thrust check.</strong> Clamp one motor with its prop on a kitchen scale, throttle it with a servo tester, and record thrust and current at 50%, 75% and 100%. Hover needs a thrust-to-weight ratio of at least 2, so hover sits near 50–60% throttle.</li>
+<li><strong>Wing sizing.</strong> Target a wing loading of 35–45 g/dm² (VTOLs run heavy). Example: 1400 g at 40 g/dm² gives 35 dm², which at a 1.2 m span is a 29 cm mean chord.</li>
+<li><strong>Motor placement.</strong> Front motors sit a distance <em>a</em> ahead of the CG, the rear motor <em>b</em> behind it. With equal thrust per motor, the rear arm is twice the front offset (<em>b</em> = 2<em>a</em>). Front prop tips need at least 2 cm clearance from each other and the fuselage.</li>
+<li><strong>Match the cruise CG to the hover CG.</strong> Flying wing: CG at 15–25% of the mean aerodynamic chord (MAC); conventional wing: 25–30% MAC. Put the hover balance point from step 4 exactly on this spot. Most homemade tilt-rotors fail here.</li>
+<li><strong>Tilt mechanism.</strong> Covered in its own section below.</li>
+<li><strong>Power budget.</strong> Hover current is 3 times the per-motor current at hover thrust. Check the battery C rating covers it, ESCs are rated at least 1.3× the measured peak, and the servos run off their own 5–6 V BEC rated 5 A or more.</li>
+</ol>
+<div class="formulas">
+<div><span>Hover margin</span><code>T_total / W ≥ 2</code></div>
+<div><span>Wing area</span><code>S = W / wing loading</code></div>
+<div><span>Hover balance</span><code>2·T_f·a = T_r·b  →  b = 2a</code></div>
+<div><span>Hover current</span><code>I_hover ≈ 3 · I_motor@hover</code></div>
+<div><span>Mean chord</span><code>c = S / span</code></div>
+<div><span>Hover time</span><code>t ≈ 0.8 · mAh / (1000 · I_hover) × 60 min</code></div>
+</div>
+
+<h2 id="wing">3D-printed wing</h2>
+<p>A printed wing will be heavier than foam, so weigh a test section before trusting the mass budget. Print time on one printer is also the longest task in the build.</p>
+<ul>
+<li><strong>Material:</strong> LW-PLA (foaming PLA) for the skins and ribs. Use normal PLA+ or PETG only where loads go in: root ribs, spar sleeves, motor pod mounts.</li>
+<li><strong>Structure:</strong> thin printed shells with internal ribs, carried by a carbon tube spar running through every section. Add a second, smaller rod or pin per joint so sections can't rotate on the spar.</li>
+<li><strong>Load path:</strong> the front motor pods and the rear motor boom bolt to the spar, never to the skin. In hover, the whole aircraft hangs from these points.</li>
+<li><strong>Sections:</strong> size each one to fit the print bed (often about 200 mm). Number them, print in order, and dry-fit on the spar before gluing.</li>
+<li><strong>Airfoil:</strong> a reflexed section for a flying wing, or a simple flat-bottomed section for a conventional wing. Keep the thickness at 10–12% so the spar fits.</li>
+<li><strong>Weight check:</strong> print one section first, weigh it, and multiply by the section count. If the wing alone pushes hover throttle above about 60%, thin the walls or shorten the span before printing the rest.</li>
+<li><strong>Joining:</strong> epoxy or thick CA, with sections aligned on the spar so there is no twist. Check both tips sit at the same angle before the glue sets.</li>
+<li><strong>Printer time:</strong> tilt mounts and pods are small and needed first for bench tests. Queue the wing sections right after, and keep the printer running around the clock.</li>
+</ul>
+<h2 id="tilt">Tilt mechanism with MG995</h2>
+<p>MG995s are a good fit. They give roughly 9–11 kg·cm of torque against a worst-case need of about 1–2 kg·cm. Their weak spots are gear slop and centring, not strength.</p>
+<h3>Why the torque is enough</h3>
+<p>Rough numbers for a 10-inch prop:</p>
+<ul>
+<li>Motor, prop and mount weigh about 100 g. With the pivot within 1 cm of their centre of mass, the static load is about 0.1 kg·cm.</li>
+<li>The biggest load is gyroscopic: tilting a spinning prop. At about 7000 rpm and a 90°/s tilt rate it comes to roughly 1 kg·cm. Fast yaw corrections can spike higher, still well under the rating.</li>
+</ul>
+<h3>Any angle in between</h3>
+<p>The MG995 is a positional servo, and ArduPilot commands it continuously:</p>
+<ul>
+<li>In hover the motors sit near vertical, and ArduPilot moves each one a few degrees independently for yaw (vectored yaw).</li>
+<li>During transition it sweeps both forward smoothly at the rate you set (<code>Q_TILT_RATE_UP</code> / <code>Q_TILT_RATE_DN</code>), holding intermediate angles as airspeed builds.</li>
+<li><code>Q_TILT_MAX</code> caps how far forward they tilt while still in a VTOL mode. Full 90° only happens once the transition completes.</li>
+<li>You calibrate the mapping: set <code>SERVOx_MIN</code> / <code>MAX</code> / <code>TRIM</code> so ArduPilot's "vertical" and "fully forward" land exactly at 0° and 90° on the real mount.</li>
+</ul>
+<h3>Design rules for the mount</h3>
+<ul>
+<li>The servo only twists; it never carries the motor's weight or thrust. Run the pivot as a shaft (an M3 or M4 bolt, or a small bearing) supported on both sides, with the servo driving it.</li>
+<li>Put the pivot axis through the combined centre of mass of the motor and prop.</li>
+<li>Allow travel from about 5–10° back past vertical to 90° forward. Check the MG995 reaches that range in the PWM window you use; many give only about 120° at 1000–2000 µs.</li>
+<li>Hard stops go just beyond the commanded range, never inside it. A servo stalled against a stop overheats and strips.</li>
+<li>Clamp the horn with a screw (a metal horn if you have one). The plastic spline strips under vibration.</li>
+<li>Analog servos: keep their output at 50 Hz.</li>
+</ul>
+<h3>Watch for</h3>
+<ul>
+<li><strong>Gear slop and deadband.</strong> Wiggle the motor by hand; anything over about 1–2° of play shows up as hover wobble. Pick the two tightest servos from your stock and keep a third as a spare.</li>
+<li><strong>Clone quality.</strong> Bench-cycle each servo for 10 minutes before fitting it.</li>
+<li><strong>Current.</strong> Each MG995 can pull over 1.5 A under load. A weak BEC browns out the flight controller mid-air, so power servos from a dedicated BEC rated 5 A or more.</li>
+</ul>
+<h2 id="specs">Spec sheet</h2>
+<p>Fill this in from the measurements, then freeze it. CAD and electronics both work only from these numbers. Any change is agreed by all departments first.</p>
+<table>
+<thead>
+<tr>
+<th>Spec</th>
+<th>Value</th>
+<th>How we got it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All-up weight (g)</td>
+<td></td>
+<td>Mass sheet + 40–50% airframe allowance</td>
+</tr>
+<tr>
+<td>Thrust per motor at 100% (g)</td>
+<td></td>
+<td>Thrust stand</td>
+</tr>
+<tr>
+<td>Thrust-to-weight ratio</td>
+<td></td>
+<td>3 × per-motor thrust ÷ AUW, must be ≥ 2</td>
+</tr>
+<tr>
+<td>Expected hover throttle (%)</td>
+<td></td>
+<td>Thrust curve</td>
+</tr>
+<tr>
+<td>Wingspan (m)</td>
+<td></td>
+<td>Fits the transport and build space</td>
+</tr>
+<tr>
+<td>Wing area (dm²)</td>
+<td></td>
+<td>AUW ÷ 35–45 g/dm²</td>
+</tr>
+<tr>
+<td>Mean chord (cm)</td>
+<td></td>
+<td>Area ÷ span</td>
+</tr>
+<tr>
+<td>Wing type</td>
+<td></td>
+<td>Flying wing or conventional</td>
+</tr>
+<tr>
+<td>CG position (% MAC)</td>
+<td></td>
+<td>15–25% flying wing, 25–30% conventional</td>
+</tr>
+<tr>
+<td>Front motor offset <em>a</em> (cm ahead of CG)</td>
+<td></td>
+<td>Layout</td>
+</tr>
+<tr>
+<td>Rear motor arm <em>b</em> (cm behind CG)</td>
+<td></td>
+<td><em>b</em> = 2<em>a</em></td>
+</tr>
+<tr>
+<td>Front motor lateral spacing (cm)</td>
+<td></td>
+<td>Prop diameter + ≥ 2 cm clearance</td>
+</tr>
+<tr>
+<td>Prop size</td>
+<td></td>
+<td>Parts on hand</td>
+</tr>
+<tr>
+<td>Tilt range (°)</td>
+<td></td>
+<td>About −8 to +90</td>
+</tr>
+<tr>
+<td>Battery (cells, mAh, C)</td>
+<td></td>
+<td>Parts on hand</td>
+</tr>
+<tr>
+<td>Hover current (A)</td>
+<td></td>
+<td>3 × motor current at hover</td>
+</tr>
+<tr>
+<td>Estimated hover time (min)</td>
+<td></td>
+<td>Formula above</td>
+</tr>
+<tr>
+<td>Target cruise speed (m/s)</td>
+<td></td>
+<td>From wing loading</td>
+</tr>
+</tbody>
+</table>
+<h2 id="avionics">Electronics and ArduPilot setup</h2>
+<p>Flash ArduPilot <strong>Plane</strong> (not Copter) and build the whole system on a bench board with props off before anything goes into the airframe. Check every parameter below against the ArduPilot Tiltrotor and E-flite Convergence setup pages for your firmware version. Names and motor numbering change between releases.</p>
+<h3>Wiring</h3>
+<ul>
+<li class="task"><input type="checkbox"> Power module for the flight controller, plus a separate 5–6 V BEC (5 A or more) for the servos</li>
+<li class="task"><input type="checkbox"> 3 ESCs on the motor outputs, 2 MG995s on the tilt outputs, plus the elevons or control surfaces</li>
+<li class="task"><input type="checkbox"> Receiver with failsafe set, GPS and compass on a mast away from the power wires</li>
+<li class="task"><input type="checkbox"> Airspeed sensor if available (it makes transitions much safer)</li>
+<li class="task"><input type="checkbox"> Flight controller on a vibration-damping mount</li>
+</ul>
+<h3>Key parameters (verify each one)</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Starting value</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Q_ENABLE</code></td>
+<td>1, then reboot</td>
+<td>Turns on QuadPlane (VTOL)</td>
+</tr>
+<tr>
+<td><code>Q_FRAME_CLASS</code></td>
+<td>7</td>
+<td>Tricopter frame</td>
+</tr>
+<tr>
+<td><code>Q_TILT_ENABLE</code></td>
+<td>1 (newer firmware)</td>
+<td>Enables tilt-rotor support</td>
+</tr>
+<tr>
+<td><code>Q_TILT_MASK</code></td>
+<td>3</td>
+<td>Motors 1 and 2 (the front pair) tilt</td>
+</tr>
+<tr>
+<td><code>Q_TILT_TYPE</code></td>
+<td>2</td>
+<td>Vectored yaw: continuous tilt plus differential tilt for yaw</td>
+</tr>
+<tr>
+<td><code>Q_TILT_YAW_ANGLE</code></td>
+<td>Start small, per docs</td>
+<td>How much the motors tilt for yaw</td>
+</tr>
+<tr>
+<td><code>Q_TILT_MAX</code></td>
+<td>Default to start</td>
+<td>Max forward tilt while still in a VTOL mode</td>
+</tr>
+<tr>
+<td><code>Q_TILT_RATE_UP</code> / <code>_DN</code></td>
+<td>Defaults to start</td>
+<td>Tilt speed in °/s</td>
+</tr>
+<tr>
+<td><code>SERVOx_FUNCTION</code></td>
+<td>33, 34 front motors; rear per docs (typically 36)</td>
+<td>Motor outputs</td>
+</tr>
+<tr>
+<td><code>SERVOx_FUNCTION</code></td>
+<td>75, 76</td>
+<td>Left and right tilt servos</td>
+</tr>
+<tr>
+<td><code>SERVOx_MIN</code> / <code>MAX</code> / <code>TRIM</code></td>
+<td>Calibrated on the mount</td>
+<td>Maps 0° and 90° to the real tilt</td>
+</tr>
+<tr>
+<td><code>Q_ASSIST_SPEED</code></td>
+<td>Set once airspeed is known</td>
+<td>VTOL motors help if the aircraft gets too slow in plane mode</td>
+</tr>
+</tbody>
+</table>
+<h3>Bench sequence</h3>
+<ol>
+<li>Calibrate the accelerometer, compass and radio.</li>
+<li>Run Mission Planner's motor test with props off. Confirm each motor's number, position and spin direction; the front pair counter-rotate.</li>
+<li>In QSTABILIZE, tilt the aircraft by hand and check that the motors and tilt servos respond in the correcting direction.</li>
+<li>Command yaw and confirm the front motors tilt in opposite directions.</li>
+<li>Switch to FBWA and confirm both motors swing to fully forward and the rear motor stops.</li>
+<li>Fly the same configuration in SITL until the pilot can hover and transition there.</li>
+</ol>
+<h2 id="preflight">Pre-flight checks and test ladder</h2>
+<p>No flight happens until every box is ticked, and each rung of the ladder is passed before the next.</p>
+<h3>Must-checks</h3>
+<ul>
+<li class="task"><input type="checkbox"> Every motor in the right position and spinning the right way; front pair counter-rotate</li>
+<li class="task"><input type="checkbox"> Props on the right way round and tight</li>
+<li class="task"><input type="checkbox"> Tilt servos correct: yaw tilts the front motors in opposite directions; FBWA swings both fully forward</li>
+<li class="task"><input type="checkbox"> Rear motor stops at full forward tilt</li>
+<li class="task"><input type="checkbox"> Servo endpoints calibrated; no stall buzz at either end</li>
+<li class="task"><input type="checkbox"> Tilt play under 1–2° by hand</li>
+<li class="task"><input type="checkbox"> CG checked with the battery in, on the hover balance point</li>
+<li class="task"><input type="checkbox"> Failsafe tested: switch off the transmitter and check the aircraft goes to QLAND or RTL</li>
+<li class="task"><input type="checkbox"> Battery charged, voltage logged, spare prints and props on the field</li>
+<li class="task"><input type="checkbox"> Everyone behind the pilot; fire-safe bag for the LiPo</li>
+</ul>
+<h3>Test ladder</h3>
+<ol>
+<li>Props-off bench test in every mode</li>
+<li>Tethered hover at 20–30 cm (tie to heavy weights, lines short enough that it cannot flip)</li>
+<li>Untethered hover at 1–2 m in QSTABILIZE, then QHOVER</li>
+<li>Hover with partial tilt (<code>Q_TILT_MAX</code> limited)</li>
+<li>Full transition at 30 m or more, with the switch back to QHOVER pre-briefed as the bailout</li>
+</ol>
+<p>Log every flight: date, battery, mode, what happened, and the ArduPilot log file name.</p>
+<h2 id="risks">Risks and mitigations</h2>
+<p>The two risks most likely to sink the project are a CG that doesn't match the hover balance point and a sloppy tilt mechanism. Both are caught on the bench, not in the air.</p>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Early sign</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CG off the hover balance point</td>
+<td>Hover needs heavy pitch trim, or one end saturates</td>
+<td>Fix <em>b</em> = 2<em>a</em> in CAD; move the battery tray to trim; check before every flight</td>
+</tr>
+<tr>
+<td>Tilt slop or MG995 jitter</td>
+<td>Hover wobble, buzzing servos</td>
+<td>Bearing-supported pivot, tightest servos, clamped horns, spare servo</td>
+</tr>
+<tr>
+<td>Overweight airframe</td>
+<td>Hover throttle above 65%</td>
+<td>LW-PLA wing skins, weigh every printed section, carbon spar instead of thick walls</td>
+</tr>
+<tr>
+<td>Servo brown-out</td>
+<td>Flight controller resets when servos move</td>
+<td>Dedicated BEC of 5 A or more; check voltage under load on the bench</td>
+</tr>
+<tr>
+<td>Tilt mount cracks</td>
+<td>Visible whitening or play after a hard landing</td>
+<td>PETG or PLA+ with high infill; 2 spares of every mount on the field</td>
+</tr>
+<tr>
+<td>Transition crash</td>
+<td>Altitude loss as the motors tilt</td>
+<td>SITL practice first, airspeed sensor, <code>Q_ASSIST_SPEED</code>, high altitude, bailout to QHOVER</td>
+</tr>
+<tr>
+<td>Schedule slip</td>
+<td>Milestones slipping by more than a day</td>
+<td>Drop the stretch goal, never the must-checks</td>
+</tr>
+<tr>
+<td>Print queue too long for one printer</td>
+<td>Wing sections still printing when electronics are ready</td>
+<td>Tilt mounts first, wing next, printer running around the clock; borrow a second printer if one is available</td>
+</tr>
+<tr>
+<td>Wing sections warp or misalign</td>
+<td>Gaps or twist when dry-fitted on the spar</td>
+<td>Brim and enclosure for LW-PLA, alignment pins, dry-fit everything before gluing</td>
+</tr>
+</tbody>
+</table></main></div>
+<footer><div class="wrap" style="display:block">Tri Tilt-Rotor VTOL · Build reference · Last updated 2 November 2026</div></footer>
+</body></html>
