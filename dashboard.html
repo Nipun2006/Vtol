@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VTOL Ground Station — Live Telemetry</title>
+<meta name="description" content="Browser ground station for the tri tilt-rotor VTOL: live MAVLink telemetry and control over a USB telemetry radio.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+:root{--ink:#16181d;--muted:#5d6370;--rule:#dcdfe4;--paper:#fbfbf9;--panel:#f1f2ef;--accent:#c2410c;--ok:#15803d;--warn:#b45309;--bad:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+.mono,.v{font-family:"IBM Plex Mono",monospace}
+button,select,input{font:inherit;color:inherit}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px 20px;border-bottom:1px solid var(--rule);background:#fff;position:sticky;top:0;z-index:1000}
+header .brand{display:flex;flex-direction:column;margin-right:auto}
+header .brand b{font-size:16px;font-weight:600;letter-spacing:-.01em}
+header .brand a{font-size:12px;color:var(--muted)}
+.conn{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--rule);background:#fff;border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.danger.solid{background:var(--bad);color:#fff}
+.btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+select,input[type=number]{border:1px solid var(--rule);border-radius:6px;padding:6px 8px;background:#fff}
+input[type=number]{width:72px}
+.pill{display:inline-flex;align-items:center;gap:6px;font:500 12px "IBM Plex Mono",monospace;padding:5px 10px;border-radius:99px;background:var(--panel);text-transform:uppercase;letter-spacing:.04em}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.ok::before{background:var(--ok)}.pill.warn::before{background:var(--warn)}.pill.bad::before{background:var(--bad)}
+.demo-banner{display:none;background:#fff4e5;color:#7c2d12;border-bottom:1px solid #f5c48a;padding:7px 20px;font-weight:500;font-size:13px}
+body.demo .demo-banner{display:block}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr) 340px;gap:16px;padding:16px 20px 28px}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:14px}
+.card h2{font:500 11px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;gap:8px}
+.card h2 span{text-transform:none;letter-spacing:0}
+canvas{display:block;width:100%}
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.readouts div{background:#fff;padding:8px 10px}
+.readouts small,.kv small{display:block;font:500 10.5px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.readouts .v{font-size:20px;font-weight:500}
+.readouts .v i,.kv .v i{font-style:normal;font-size:12px;color:var(--muted);margin-left:3px}
+#map{height:460px;border-radius:6px;background:var(--panel)}
+.map-wrap{position:relative}
+.map-offline{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--muted);background:var(--panel);border-radius:6px}
+.guided{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:13px}
+.guided .target{font-family:"IBM Plex Mono",monospace;color:var(--muted)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.kv .v{font-size:16px;font-weight:500}
+.big-state{display:flex;gap:10px;margin-bottom:12px}
+.big-state div{flex:1;border-radius:6px;padding:10px;text-align:center;background:var(--panel)}
+.big-state small{display:block;font:500 10.5px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.big-state b{font:600 19px "IBM Plex Mono",monospace}
+.big-state .armed{background:#fde8e8;color:var(--bad)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.modes .btn{padding:7px 4px;font-size:12.5px}
+.sub{font:500 10.5px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 6px}
+.row{display:flex;gap:8px}.row .btn{flex:1}
+.hold{position:relative;overflow:hidden}
+.hold .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(185,28,28,.18);pointer-events:none}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:62px 1fr 46px;gap:8px;align-items:center;font-size:12px}
+.bar .track{height:8px;background:var(--panel);border-radius:4px;overflow:hidden}
+.bar .track b{display:block;height:100%;background:var(--ink);width:0;transition:width .15s}
+.bar .num{font-family:"IBM Plex Mono",monospace;text-align:right;color:var(--muted)}
+.log{height:210px;overflow-y:auto;font:12px/1.5 "IBM Plex Mono",monospace;margin:0;padding:0;list-style:none}
+.log li{padding:2px 0;border-bottom:1px dashed var(--rule);display:flex;gap:8px}
+.log time{color:var(--muted);flex:none}
+.log .s0,.log .s1,.log .s2,.log .s3{color:var(--bad)}.log .s4{color:var(--warn)}.log .gcs{color:var(--accent)}
+details.settings summary{cursor:pointer;color:var(--muted);font-size:12.5px}
+.settings-grid{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;margin-top:10px;font-size:12.5px}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.aircraft-icon{transition:transform .1s linear}
+@media (max-width:1180px){.layout{grid-template-columns:1fr 1fr}.col.center{grid-column:1/-1;order:-1}}
+@media (max-width:720px){.layout{grid-template-columns:1fr;padding:12px}#map{height:340px}}
+</style></head><body>
+<header>
+  <div class="brand"><b>VTOL Ground Station</b><a href="/">← Build reference</a></div>
+  <div class="conn">
+    <select id="baud" title="Must match SERIALx_BAUD on the Cube and the radio's air settings">
+      <option value="57600" selected>57600 baud (SiK default)</option>
+      <option value="115200">115200 baud</option>
+      <option value="460800">460800 baud</option>
+      <option value="921600">921600 baud</option>
+    </select>
+    <button class="btn primary" id="btnSerial">Connect radio (USB)</button>
+    <button class="btn" id="btnDemo">Demo</button>
+    <button class="btn" id="btnDisconnect" disabled>Disconnect</button>
+    <button class="btn" id="btnLog" disabled title="Download everything received and sent as a .tlog (opens in Mission Planner)">Save .tlog</button>
+    <span class="pill" id="linkPill">No link</span>
+  </div>
+</header>
+<div class="demo-banner">Demo mode: simulated aircraft, not real telemetry. Commands go to the simulator only.</div>
+
+<div class="layout">
+  <div class="col">
+    <section class="card">
+      <h2>Attitude <span class="mono" id="attText">—</span></h2>
+      <canvas id="adi" width="540" height="400" aria-label="Attitude indicator"></canvas>
+    </section>
+    <section class="card">
+      <h2>Flight data</h2>
+      <div class="readouts">
+        <div><small>Altitude (rel)</small><span class="v" id="rAlt">—</span></div>
+        <div><small>Climb</small><span class="v" id="rClimb">—</span></div>
+        <div><small>Airspeed</small><span class="v" id="rAs">—</span></div>
+        <div><small>Groundspeed</small><span class="v" id="rGs">—</span></div>
+        <div><small>Heading</small><span class="v" id="rHdg">—</span></div>
+        <div><small>Throttle</small><span class="v" id="rThr">—</span></div>
+        <div><small>Dist. home</small><span class="v" id="rHome">—</span></div>
+        <div><small>Flight time</small><span class="v" id="rTime">—</span></div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Tilt rotors <span class="mono" id="tiltText">—</span></h2>
+      <canvas id="tilt" width="540" height="220" aria-label="Front motor tilt angles"></canvas>
+      <p class="note">0° = pointing up (hover), 90° = fully forward (cruise). From the tilt servo outputs; set the channels and endpoints under Settings.</p>
+    </section>
+  </div>
+
+  <div class="col center">
+    <section class="card">
+      <h2>Map <span id="mapHint">Click the map to pick a guided target</span></h2>
+      <div class="map-wrap"><div id="map"></div><div class="map-offline" id="mapOffline">Map tiles need internet. Telemetry and controls still work without it.</div></div>
+      <div class="guided">
+        <span class="target" id="tgtText">No target selected</span>
+        <label>Alt <input type="number" id="tgtAlt" value="40" min="5" max="400" step="5"> m</label>
+        <button class="btn" id="btnFlyHere" disabled>Fly here (GUIDED)</button>
+        <button class="btn" id="btnFollow">Follow aircraft: on</button>
+        <button class="btn" id="btnClearTrack">Clear track</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Messages <span id="pktStats" class="mono">—</span></h2>
+      <ul class="log" id="log"></ul>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card">
+      <h2>Vehicle <span class="mono" id="vehText">—</span></h2>
+      <div class="big-state">
+        <div id="armBox"><small>State</small><b id="armText">—</b></div>
+        <div><small>Mode</small><b id="modeText">—</b></div>
+      </div>
+      <div class="kv">
+        <div><small>Battery</small><span class="v" id="kBatt">—</span></div>
+        <div><small>Current</small><span class="v" id="kCurr">—</span></div>
+        <div><small>Remaining</small><span class="v" id="kRem">—</span></div>
+        <div><small>GPS</small><span class="v" id="kGps">—</span></div>
+        <div><small>Radio RSSI (local / remote)</small><span class="v" id="kRssi">—</span></div>
+        <div><small>Fade margin</small><span class="v" id="kFade">—</span></div>
+        <div><small>Heartbeat</small><span class="v" id="kHb">—</span></div>
+        <div><small>Packet loss</small><span class="v" id="kLoss">—</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Control <span id="ctrlHint">Connect first</span></h2>
+      <div class="row">
+        <button class="btn hold" id="btnArm" data-hold="1200"><span class="fill"></span>Hold to ARM</button>
+        <button class="btn hold danger" id="btnDisarm" data-hold="1500"><span class="fill"></span>Hold to DISARM</button>
+      </div>
+      <div class="sub">VTOL modes</div>
+      <div class="modes" data-modes="QSTABILIZE QHOVER QLOITER"></div>
+      <div class="sub">Forward flight</div>
+      <div class="modes" data-modes="FBWA CRUISE AUTO LOITER GUIDED MANUAL"></div>
+      <div class="sub">Get it back</div>
+      <div class="row">
+        <button class="btn danger solid" data-mode="QLAND">QLAND now</button>
+        <button class="btn danger" data-mode="QRTL">QRTL</button>
+        <button class="btn danger" data-mode="RTL">RTL</button>
+      </div>
+      <p class="note">The pilot's RC transmitter always wins: a mode switch flick overrides anything sent from here. MANUAL and FBWA on a tilt-rotor are for an experienced pilot on the sticks only.</p>
+    </section>
+
+    <section class="card">
+      <h2>Outputs</h2>
+      <div class="bars" id="outBars"></div>
+      <div class="sub">RC input</div>
+      <div class="bars" id="rcBars"></div>
+      <details class="settings">
+        <summary>Settings: output channels and tilt calibration</summary>
+        <div class="settings-grid">
+          <label for="sM1">Front-right motor (M1) output</label><input type="number" id="sM1" min="1" max="16">
+          <label for="sM2">Front-left motor (M2) output</label><input type="number" id="sM2" min="1" max="16">
+          <label for="sM4">Rear motor (M4) output</label><input type="number" id="sM4" min="1" max="16">
+          <label for="sTL">Left tilt servo output</label><input type="number" id="sTL" min="1" max="16">
+          <label for="sTR">Right tilt servo output</label><input type="number" id="sTR" min="1" max="16">
+          <label for="sP0">Tilt PWM at 0° (up)</label><input type="number" id="sP0" min="500" max="2500" step="10">
+          <label for="sP90">Tilt PWM at 90° (forward)</label><input type="number" id="sP90" min="500" max="2500" step="10">
+          <label for="sCells">Battery cells (for per-cell volts)</label><input type="number" id="sCells" min="1" max="14">
+        </div>
+        <p class="note">Match these to your <code>SERVOx_FUNCTION</code> assignments. For a servo mounted the other way round, enter the 0° PWM higher than the 90° PWM.</p>
+      </details>
+    </section>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="mavlink.js"></script>
+<script src="sim.js"></script>
+<script src="dashboard.js"></script>
+</body></html>

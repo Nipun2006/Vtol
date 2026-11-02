@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tri Tilt-Rotor VTOL — Build Reference</title>
-<meta name="description" content="Design, tilt mechanism, ArduPilot setup and flight-test reference for a 3-motor tilt-rotor VTOL.">
+<meta name="description" content="Design, tilt mechanism, Cube flight controller, telemetry, ArduPilot setup and flight-test reference for a 3-motor tilt-rotor VTOL.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -34,26 +34,32 @@ td:first-child{font-weight:500}
 .formulas code{background:none;padding:0;font-size:14px}
 li.task{list-style:none;margin-left:-22px;display:flex;gap:10px;align-items:baseline}
 li.task input{accent-color:var(--accent);transform:translateY(2px)}
+a.cta{display:inline-block;margin-top:18px;background:var(--ink);color:#fff;text-decoration:none;font-weight:500;font-size:14px;padding:9px 16px;border-radius:6px}
+a.cta:hover{background:var(--accent)}
+.callout{border-left:3px solid var(--accent);background:#fff;padding:12px 16px;margin:18px 0;max-width:72ch}
+.callout p{margin:0}
 footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color:var(--muted)}
 @media (max-width:860px){.wrap{grid-template-columns:1fr;gap:0}nav{display:none}h1{font-size:30px}table{display:block;overflow-x:auto}}
 @media print{nav{display:none}.wrap{display:block}body{background:#fff}}
 </style></head><body>
 <header class="top"><div class="wrap"><div class="kicker">Build reference</div>
 <h1>Tri Tilt-Rotor VTOL</h1>
-<div class="meta">2 November 2026 &nbsp;·&nbsp; 3 motors · 2 tilting · ArduPilot QuadPlane</div></div></header>
-<div class="wrap"><nav><a href="#mission">Mission and scope</a><a href="#departments">Departments</a><a href="#design">Design process</a><a href="#wing">3D-printed wing</a><a href="#tilt">Tilt mechanism with MG995</a><a href="#specs">Spec sheet</a><a href="#avionics">Electronics and ArduPilot setup</a><a href="#preflight">Pre-flight checks and test ladder</a><a href="#risks">Risks and mitigations</a></nav><main><h2 id="mission">Mission and scope</h2>
+<div class="meta">2 November 2026 &nbsp;·&nbsp; 3 motors · 2 tilting · Cube Orange+ · ArduPilot QuadPlane · live MAVLink telemetry</div>
+<a class="cta" href="/dashboard.html">Open the live dashboard →</a></div></header>
+<div class="wrap"><nav><a href="#mission">Mission and scope</a><a href="#departments">Departments</a><a href="#design">Design process</a><a href="#wing">3D-printed wing</a><a href="#tilt">Tilt mechanism with MG995</a><a href="#specs">Spec sheet</a><a href="#cube">Cube flight controller</a><a href="#avionics">Electronics and ArduPilot setup</a><a href="#radios">Radio links and telemetry</a><a href="#dashboard">Live dashboard</a><a href="#preflight">Pre-flight checks and test ladder</a><a href="#risks">Risks and mitigations</a></nav><main><h2 id="mission">Mission and scope</h2>
 <p>The goal is a 3-motor tilt-rotor VTOL that hovers stably and tilts its front motors on command. A full transition to forward flight is the stretch goal, not the pass mark.</p>
 <ul>
-<li><strong>Must have:</strong> stable hover in QHOVER, tilt mechanism working on the bench and in flight.</li>
+<li><strong>Must have:</strong> stable hover in QHOVER, tilt mechanism working on the bench and in flight, live telemetry on the dashboard for every flight.</li>
 <li><strong>Stretch:</strong> first transition from hover to forward flight and back.</li>
 <li><strong>Reference layout:</strong> the E-flite Convergence, which ArduPilot supports natively:<ul>
 <li>Two front motors on servo tilt mounts: pointing up for hover, forward for cruise. Small differential tilt gives yaw in hover.</li>
 <li>One fixed rear motor for hover only. It switches off in forward flight.</li>
 <li>Fully 3D-printed wing on a carbon spar, with printed pods, tilt mounts and joints.</li>
-<li>Flight controller running ArduPilot Plane (QuadPlane, tricopter frame, vectored tilt).</li>
+<li>Pixhawk Cube flight controller (Cube Orange+) running ArduPilot Plane (QuadPlane, tricopter frame, vectored tilt).</li>
+<li>Live MAVLink telemetry to a browser dashboard, so the aircraft can be watched and commanded from the ground: arm, change modes, send it to a point, bring it home.</li>
 </ul>
 </li>
-<li><strong>Rule:</strong> every flight needs a clear go/no-go call. No props on during bench work, no untethered first hover.</li>
+<li><strong>Rule:</strong> every flight needs a clear go/no-go call. No props on during bench work, no untethered first hover. A pilot with an RC transmitter is always in command, even when the ground station is sending commands.</li>
 </ul>
 <h2 id="departments">Departments</h2>
 <p>The work splits into four departments, each owning one part of the aircraft.</p>
@@ -75,18 +81,18 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 </tr>
 <tr>
 <td>Avionics and firmware</td>
-<td>Flight controller wiring and power, ArduPilot setup, SITL practice, pilot training</td>
+<td>Cube wiring and power, ArduPilot setup, RC and telemetry radios, ground station and dashboard, SITL practice, pilot training</td>
 </tr>
 <tr>
 <td>Test ops and logistics</td>
-<td>Mass sheet, spares, checklists, flight-safety rules, flight log</td>
+<td>Mass sheet, spares, checklists, flight-safety rules, flight log, saving the telemetry log (.tlog) and the Cube's onboard log after every flight</td>
 </tr>
 </tbody>
 </table>
 <h2 id="design">Design process</h2>
 <p>Size the aircraft from the parts we already have, in this order. Each step feeds the next, and the CG is the number everything hangs on.</p>
 <ol>
-<li><strong>Mass budget.</strong> Weigh every part: motors, ESCs, 2 MG995s, battery, flight controller, GPS, receiver, wiring. Add 40–50% for the airframe and prints. That sum is the target all-up weight (AUW).</li>
+<li><strong>Mass budget.</strong> Weigh every part: motors, ESCs, 2 MG995s, battery, Cube with its carrier board, GPS, receiver, telemetry radio and antenna, video transmitter and camera if fitted, wiring. Add 40–50% for the airframe and prints. That sum is the target all-up weight (AUW).</li>
 <li><strong>Thrust check.</strong> Clamp one motor with its prop on a kitchen scale, throttle it with a servo tester, and record thrust and current at 50%, 75% and 100%. Hover needs a thrust-to-weight ratio of at least 2, so hover sits near 50–60% throttle.</li>
 <li><strong>Wing sizing.</strong> Target a wing loading of 35–45 g/dm² (VTOLs run heavy). Example: 1400 g at 40 g/dm² gives 35 dm², which at a 1.2 m span is a 29 cm mean chord.</li>
 <li><strong>Motor placement.</strong> Front motors sit a distance <em>a</em> ahead of the CG, the rear motor <em>b</em> behind it. With equal thrust per motor, the rear arm is twice the front offset (<em>b</em> = 2<em>a</em>). Front prop tips need at least 2 cm clearance from each other and the fuselage.</li>
@@ -247,17 +253,127 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <td></td>
 <td>From wing loading</td>
 </tr>
+<tr>
+<td>Cube + carrier mass (g)</td>
+<td></td>
+<td>Weighed, with cables</td>
+</tr>
+<tr>
+<td>Telemetry radio and band</td>
+<td></td>
+<td>915 or 433 MHz, matching your country</td>
+</tr>
+<tr>
+<td>RC link</td>
+<td></td>
+<td>Transmitter and receiver model</td>
+</tr>
+<tr>
+<td>Telemetry range, tested (m)</td>
+<td></td>
+<td>Walk test until the fade margin drops to 20</td>
+</tr>
 </tbody>
 </table>
+<h2 id="cube">Cube flight controller</h2>
+<p>The brain is a Pixhawk Cube running ArduPilot Plane. Buy the <strong>Cube Orange+</strong> if you are buying new. A Cube Orange or Cube Black you already own also runs ArduPilot Plane. The Cube's IMUs sit on a heated, vibration-isolated board inside the cube, and it plugs into a carrier board that holds all the connectors.</p>
+<ul>
+<li><strong>Carrier board:</strong> the standard ADS-B carrier gives every port used below. A mini carrier saves space and weight but has fewer ports, so check it has two telemetry ports, CAN and enough outputs before choosing it.</li>
+<li><strong>Size and weight:</strong> the Cube on its carrier is much bigger and heavier than a small racing-style controller. Weigh yours, put it on the mass sheet, and design the fuselage bay around it, with room for the cables to bend.</li>
+<li><strong>Mounting:</strong> the IMUs are already isolated, so mount the carrier firmly on foam pads, arrow facing forward. Don't add a second wobbly soft mount. After the first hover, check vibration in the log (<code>VIBE</code>): below about 30 m/s² and no clipping.</li>
+<li><strong>Firmware:</strong> in Mission Planner, Install Firmware → Plane → board <code>CubeOrangePlus</code> (or your Cube's name), latest stable release.</li>
+<li><strong>GPS:</strong> a CubePilot Here 3+ or Here 4 on CAN1, on a mast away from the power wires and the video transmitter. Its button is the safety switch: press it before arming.</li>
+</ul>
+<h3>Port map</h3>
+<table>
+<thead>
+<tr>
+<th>Cube port</th>
+<th>Connects to</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POWER1</td>
+<td>Power module from the main battery</td>
+<td>Powers the Cube and measures battery voltage and current (<code>BATT_MONITOR</code> = 4)</td>
+</tr>
+<tr>
+<td>POWER2</td>
+<td>Second power module or a clean 5.3 V BEC</td>
+<td>Backup supply. Optional but cheap insurance.</td>
+</tr>
+<tr>
+<td>TELEM1</td>
+<td>Air-side telemetry radio</td>
+<td><code>SERIAL1</code>: MAVLink 2 at 57600 baud. This is the link the dashboard uses.</td>
+</tr>
+<tr>
+<td>TELEM2</td>
+<td>RC receiver (ELRS or Crossfire) or the OSD</td>
+<td><code>SERIAL2</code>: CRSF for the receiver, or MSP DisplayPort for a digital video OSD</td>
+</tr>
+<tr>
+<td>RCIN</td>
+<td>RC receiver (SBUS or PPM)</td>
+<td>Use this or TELEM2 for the receiver, not both</td>
+</tr>
+<tr>
+<td>CAN1</td>
+<td>Here 3+ / Here 4 GPS</td>
+<td>DroneCAN GPS, compass, safety button and LED</td>
+</tr>
+<tr>
+<td>I2C</td>
+<td>Airspeed sensor</td>
+<td>MS4525-type, with the pitot tube clear of the prop wash</td>
+</tr>
+<tr>
+<td>MAIN OUT 1–8</td>
+<td>ESCs, tilt servos, elevons</td>
+<td>See the output map below. The servo rail is <em>not</em> powered by the Cube, so feed it from the servo BEC.</td>
+</tr>
+<tr>
+<td>USB</td>
+<td>Laptop, for setup only</td>
+<td>Never fly with USB as the only power</td>
+</tr>
+</tbody>
+</table>
+<h3>Output map</h3>
+<p>The MAIN outputs run in rate groups (1–2, 3–4, 5–8), and every output in a group shares one update rate. Motors want a fast rate and the analog MG995s need 50 Hz, so the motors go in groups 1–2 and 3–4 and every servo goes in 5–8. The dashboard uses this map by default.</p>
+<table>
+<thead>
+<tr>
+<th>Output</th>
+<th>Function</th>
+<th><code>SERVOx_FUNCTION</code></th>
+</tr>
+</thead>
+<tbody>
+<tr><td>MAIN 1</td><td>Front-right motor (Motor 1)</td><td>33</td></tr>
+<tr><td>MAIN 2</td><td>Front-left motor (Motor 2)</td><td>34</td></tr>
+<tr><td>MAIN 3</td><td>Rear motor (Motor 4)</td><td>36</td></tr>
+<tr><td>MAIN 4</td><td>Empty: keeps the 3–4 group motors-only</td><td>0</td></tr>
+<tr><td>MAIN 5</td><td>Left tilt servo</td><td>75</td></tr>
+<tr><td>MAIN 6</td><td>Right tilt servo</td><td>76</td></tr>
+<tr><td>MAIN 7</td><td>Left elevon (flying wing) or aileron</td><td>77 (or 4)</td></tr>
+<tr><td>MAIN 8</td><td>Right elevon (flying wing) or elevator</td><td>78 (or 19)</td></tr>
+</tbody>
+</table>
+<p>Check this against the ArduPilot tilt-rotor and E-flite Convergence pages for your firmware version before the first motor test.</p>
 <h2 id="avionics">Electronics and ArduPilot setup</h2>
 <p>Flash ArduPilot <strong>Plane</strong> (not Copter) and build the whole system on a bench board with props off before anything goes into the airframe. Check every parameter below against the ArduPilot Tiltrotor and E-flite Convergence setup pages for your firmware version. Names and motor numbering change between releases.</p>
 <h3>Wiring</h3>
 <ul>
-<li class="task"><input type="checkbox"> Power module for the flight controller, plus a separate 5–6 V BEC (5 A or more) for the servos</li>
-<li class="task"><input type="checkbox"> 3 ESCs on the motor outputs, 2 MG995s on the tilt outputs, plus the elevons or control surfaces</li>
-<li class="task"><input type="checkbox"> Receiver with failsafe set, GPS and compass on a mast away from the power wires</li>
-<li class="task"><input type="checkbox"> Airspeed sensor if available (it makes transitions much safer)</li>
-<li class="task"><input type="checkbox"> Flight controller on a vibration-damping mount</li>
+<li class="task"><input type="checkbox"> Power module on the Cube's POWER1, plus a separate 5–6 V BEC (5 A or more) feeding the servo rail</li>
+<li class="task"><input type="checkbox"> 3 ESCs on MAIN 1–3, 2 MG995s on MAIN 5–6, elevons on MAIN 7–8 (see the output map)</li>
+<li class="task"><input type="checkbox"> RC receiver on TELEM2 (CRSF) or RCIN (SBUS), with failsafe set</li>
+<li class="task"><input type="checkbox"> Here 3+ / Here 4 GPS on CAN1, on a mast away from the power wires and the VTX</li>
+<li class="task"><input type="checkbox"> Telemetry radio on TELEM1, antenna vertical and clear of the carbon spar</li>
+<li class="task"><input type="checkbox"> Airspeed sensor on I2C (it makes transitions much safer)</li>
+<li class="task"><input type="checkbox"> Cube carrier mounted firmly, arrow forward (no extra soft mount)</li>
 </ul>
 <h3>Key parameters (verify each one)</h3>
 <table>
@@ -329,6 +445,56 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <td>Set once airspeed is known</td>
 <td>VTOL motors help if the aircraft gets too slow in plane mode</td>
 </tr>
+<tr>
+<td><code>SERIAL1_PROTOCOL</code> / <code>_BAUD</code></td>
+<td>2 / 57</td>
+<td>MAVLink 2 at 57600 baud on TELEM1 for the telemetry radio</td>
+</tr>
+<tr>
+<td><code>SERIAL2_PROTOCOL</code></td>
+<td>23 (if the receiver is on TELEM2)</td>
+<td>CRSF/ELRS receiver; also set <code>RSSI_TYPE</code> = 3</td>
+</tr>
+<tr>
+<td><code>CAN_P1_DRIVER</code> / <code>CAN_D1_PROTOCOL</code></td>
+<td>1 / 1</td>
+<td>DroneCAN on CAN1 for the Here GPS</td>
+</tr>
+<tr>
+<td><code>GPS1_TYPE</code></td>
+<td>9</td>
+<td>DroneCAN GPS (named <code>GPS_TYPE</code> on older firmware)</td>
+</tr>
+<tr>
+<td><code>BATT_MONITOR</code> / <code>BATT_CAPACITY</code></td>
+<td>4 / pack mAh</td>
+<td>Voltage and current from the power module. Calibrate the current reading against a charger.</td>
+</tr>
+<tr>
+<td><code>THR_FAILSAFE</code></td>
+<td>1</td>
+<td>RC failsafe on. Test it on the ground before every flying day.</td>
+</tr>
+<tr>
+<td><code>FS_LONG_ACTN</code></td>
+<td>Per docs: RTL</td>
+<td>What the aircraft does after a long RC loss</td>
+</tr>
+<tr>
+<td><code>FS_GCS_ENABL</code></td>
+<td>0 to start</td>
+<td>Whether losing the dashboard link triggers a failsafe (see Live dashboard)</td>
+</tr>
+<tr>
+<td><code>Q_RTL_MODE</code></td>
+<td>Check the docs</td>
+<td>Whether RTL ends in a fixed-wing loiter or a VTOL landing at home</td>
+</tr>
+<tr>
+<td><code>Q_GUIDED_MODE</code></td>
+<td>1</td>
+<td>"Fly here" targets end in a VTOL hover instead of a circle</td>
+</tr>
 </tbody>
 </table>
 <h3>Bench sequence</h3>
@@ -338,8 +504,85 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <li>In QSTABILIZE, tilt the aircraft by hand and check that the motors and tilt servos respond in the correcting direction.</li>
 <li>Command yaw and confirm the front motors tilt in opposite directions.</li>
 <li>Switch to FBWA and confirm both motors swing to fully forward and the rear motor stops.</li>
-<li>Fly the same configuration in SITL until the pilot can hover and transition there.</li>
+<li>Connect the dashboard over the telemetry radio. Check that the mode, attitude, battery and tilt angles match the aircraft, and that a mode change sent from the dashboard shows up.</li>
+<li>Fly the same configuration in SITL until the pilot can hover and transition there. The dashboard's Demo mode is useful practice for the ground station operator.</li>
 </ol>
+<h2 id="radios">Radio links and telemetry</h2>
+<p>A "completely controllable" aircraft uses up to three separate radio links. Each does one job, so losing one never takes out the others.</p>
+<table>
+<thead>
+<tr>
+<th>Link</th>
+<th>Band</th>
+<th>Carries</th>
+<th>Hardware</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RC control</td>
+<td>2.4 GHz</td>
+<td>The pilot's sticks and mode switch. This is the safety link.</td>
+<td>ExpressLRS (ELRS) transmitter and receiver, or whatever transmitter the pilot already flies</td>
+</tr>
+<tr>
+<td>Telemetry (MAVLink)</td>
+<td>915 MHz or 433 MHz, depending on country</td>
+<td>Everything on the dashboard, plus commands from the ground: arm, modes, fly-to-point, RTL</td>
+<td>A pair of SiK radios (Holybro SiK V3 or similar) to start. An RFD900x pair for long range.</td>
+</tr>
+<tr>
+<td>Video (optional)</td>
+<td>5.8 GHz</td>
+<td>A live camera view with on-screen data</td>
+<td>Analog VTX and goggles, or a digital system (DJI O3, Walksnail)</td>
+</tr>
+</tbody>
+</table>
+<div class="callout"><p><strong>Which frequency?</strong> 5.8 GHz is for <em>video</em>, not telemetry. There's no standard 935 MHz telemetry band, so you probably mean <strong>915 MHz</strong>, which is the licence-free band in the Americas and Australia. Europe, the UK, India and many other countries use 433 MHz (or 868 MHz) instead. Look up your country's licence-free bands and power limits first, then buy the matching radio version.</p></div>
+<h3>Recommended setup</h3>
+<ul>
+<li><strong>Start with:</strong> ELRS for RC, a SiK telemetry pair in your country's band, and no video. That covers live telemetry and full control from the dashboard.</li>
+<li><strong>Add later:</strong> 5.8 GHz video, with the OSD from the Cube, once the aircraft hovers reliably.</li>
+<li><strong>All-in-one alternative:</strong> CubePilot Herelink, a handheld controller that carries RC, HD video and telemetry over one 2.4 GHz link. It's made for the Cube but costs much more than the separate radios.</li>
+</ul>
+<h3>Setting up the telemetry pair</h3>
+<ol>
+<li>Plug the air radio into TELEM1 and the ground radio into the laptop's USB port.</li>
+<li>Set <code>SERIAL1_PROTOCOL</code> = 2 (MAVLink 2) and <code>SERIAL1_BAUD</code> = 57.</li>
+<li>In Mission Planner's SiK Radio screen, load both radios. Give them the same <code>NETID</code> (unique to your team), the same air speed (64 kbps is a good start) and the same frequency range, and turn on ECC and MAVLink framing. Save both.</li>
+<li>Both radios' LEDs go solid green when they link up. Close Mission Planner and connect the dashboard at 57600 baud.</li>
+</ol>
+<h3>Antennas and interference</h3>
+<ul>
+<li>Mount the antennas vertically, away from carbon (the spar and tubes block radio), and not alongside each other. Keep the 2.4 GHz RC antennas away from the 2.4 GHz video or Herelink antennas.</li>
+<li>Keep the video transmitter as far from the GPS as the fuselage allows. A 5.8 GHz VTX is a well-known source of GPS interference. Check the satellite count with the VTX on and off.</li>
+<li>Never power a VTX or telemetry radio without its antenna fitted; it can damage the transmitter.</li>
+</ul>
+<h3>Range test before flying</h3>
+<p>With the aircraft on the ground and props off, walk the ground radio away with the dashboard open. Note where the fade margin drops below about 20 and where packet loss starts. Do the same with the RC link using the transmitter's range-check mode. Fly well inside both distances.</p>
+
+<h2 id="dashboard">Live dashboard</h2>
+<p>The project site has a live ground station at <a href="/dashboard.html">/dashboard.html</a>. It talks MAVLink directly to the ground telemetry radio through the browser's Web Serial API, so the laptop needs no other install.</p>
+<ul>
+<li><strong>Shows:</strong> artificial horizon, altitude, airspeed, groundspeed, climb, heading, throttle, battery voltage and current, GPS fix and satellites, radio RSSI and fade margin, packet loss, both tilt-rotor angles, motor outputs, RC inputs, and a live map with track, home and the aircraft's heading. ArduPilot's own messages scroll in a log.</li>
+<li><strong>Controls:</strong> arm and disarm (press and hold), every useful mode, one-tap QLAND / QRTL / RTL, and "fly here": click the map, set an altitude, and the aircraft goes there in GUIDED. Switching from a VTOL mode to a forward-flight mode asks for confirmation, because that starts a transition.</li>
+<li><strong>Logs:</strong> "Save .tlog" downloads everything sent and received, which opens in Mission Planner for replay.</li>
+<li><strong>Demo:</strong> the Demo button runs a simulated aircraft so the team can practise on the dashboard without hardware.</li>
+</ul>
+<h3>Using it in the field</h3>
+<ul>
+<li>Use Chrome or Edge on a laptop. Safari, Firefox and phones don't support Web Serial.</li>
+<li>Only one program can open the radio at a time, so close Mission Planner first. Use Mission Planner for setup, parameters and missions, and the dashboard for flying.</li>
+<li>Open the page before you leave internet coverage and keep the tab open. Map tiles need internet, but telemetry and controls don't. For a fully offline copy, run <code>python3 -m http.server</code> in the project folder and open <code>http://localhost:8000/dashboard.html</code>.</li>
+<li>Check that the dashboard's output channels and tilt endpoints (under Settings) match your <code>SERVOx_FUNCTION</code> and <code>SERVOx_MIN</code>/<code>MAX</code> values. Otherwise the tilt angles shown will be wrong.</li>
+</ul>
+<h3>Who controls what</h3>
+<ul>
+<li><strong>The pilot</strong> holds the RC transmitter for every flight and can take over at any moment by flicking the mode switch. That always overrides the dashboard.</li>
+<li><strong>The ground station operator</strong> watches the dashboard, calls out battery, link and altitude, and sends commands only when the pilot agrees.</li>
+<li>Start with <code>FS_GCS_ENABL</code> = 0, which ignores loss of the ground station, and keep RC failsafe as the primary failsafe. Turn on GCS failsafe only once you fly missions that depend on the telemetry link.</li>
+</ul>
 <h2 id="preflight">Pre-flight checks and test ladder</h2>
 <p>No flight happens until every box is ticked, and each rung of the ladder is passed before the next.</p>
 <h3>Must-checks</h3>
@@ -352,18 +595,22 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <li class="task"><input type="checkbox"> Tilt play under 1–2° by hand</li>
 <li class="task"><input type="checkbox"> CG checked with the battery in, on the hover balance point</li>
 <li class="task"><input type="checkbox"> Failsafe tested: switch off the transmitter and check the aircraft goes to QLAND or RTL</li>
+<li class="task"><input type="checkbox"> Telemetry linked: dashboard shows the right mode, attitude and battery; fade margin healthy; packet loss near 0%</li>
+<li class="task"><input type="checkbox"> GPS 3D fix with 10+ satellites, home position shown on the dashboard map</li>
+<li class="task"><input type="checkbox"> Pilot and ground station operator agree who sends which commands</li>
 <li class="task"><input type="checkbox"> Battery charged, voltage logged, spare prints and props on the field</li>
 <li class="task"><input type="checkbox"> Everyone behind the pilot; fire-safe bag for the LiPo</li>
 </ul>
 <h3>Test ladder</h3>
 <ol>
-<li>Props-off bench test in every mode</li>
+<li>Props-off bench test in every mode, including mode changes sent from the dashboard</li>
+<li>Telemetry and RC range test on the ground</li>
 <li>Tethered hover at 20–30 cm (tie to heavy weights, lines short enough that it cannot flip)</li>
 <li>Untethered hover at 1–2 m in QSTABILIZE, then QHOVER</li>
 <li>Hover with partial tilt (<code>Q_TILT_MAX</code> limited)</li>
 <li>Full transition at 30 m or more, with the switch back to QHOVER pre-briefed as the bailout</li>
 </ol>
-<p>Log every flight: date, battery, mode, what happened, and the ArduPilot log file name.</p>
+<p>Log every flight: date, battery, mode, what happened, the ArduPilot log file name and the dashboard .tlog file name.</p>
 <h2 id="risks">Risks and mitigations</h2>
 <p>The two risks most likely to sink the project are a CG that doesn't match the hover balance point and a sloppy tilt mechanism. Both are caught on the bench, not in the air.</p>
 <table>
@@ -404,6 +651,26 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <td>Transition crash</td>
 <td>Altitude loss as the motors tilt</td>
 <td>SITL practice first, airspeed sensor, <code>Q_ASSIST_SPEED</code>, high altitude, bailout to QHOVER</td>
+</tr>
+<tr>
+<td>Telemetry link drops</td>
+<td>Fade margin falling, packet loss rising, "Link lost" on the dashboard</td>
+<td>Range test first, antennas clear of carbon, RC stays the primary link, RC failsafe tested</td>
+</tr>
+<tr>
+<td>Wrong command from the ground</td>
+<td>Unplanned mode change or transition</td>
+<td>Confirm prompts on transitions, the operator only acts on the pilot's call, the pilot overrides with the mode switch</td>
+</tr>
+<tr>
+<td>VTX interferes with GPS</td>
+<td>Satellite count drops when the video transmitter powers up</td>
+<td>Move the VTX away from the GPS mast; check the satellite count with the VTX on and off</td>
+</tr>
+<tr>
+<td>Cube and radios make the aircraft too heavy</td>
+<td>Hover throttle creeps up as electronics go in</td>
+<td>Weigh the Cube and carrier early; leave video until hover works</td>
 </tr>
 <tr>
 <td>Schedule slip</td>
