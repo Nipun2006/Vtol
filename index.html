@@ -207,7 +207,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <tr><td>Wing area / aspect ratio</td><td>0.30 m² / 4.8</td><td>1.2 m × 0.25 m</td></tr>
 <tr><td>Wing loading</td><td>43 g/dm²</td><td>At 1.3 kg. Inside the 35–45 target.</td></tr>
 <tr><td>Stall speed</td><td>about 8 m/s</td><td>CL<sub>max</sub> about 1.1 in 3D</td></tr>
-<tr><td>Minimum flying speed</td><td>11 m/s</td><td>1.4 × stall. A transition is complete only above this. Use it for <code>AIRSPEED_MIN</code> (<code>ARSPD_FBW_MIN</code> on older firmware) and <code>Q_ASSIST_SPEED</code>.</td></tr>
+<tr><td>Minimum flying speed</td><td>11 m/s</td><td>1.4 × stall. A transition is complete only above this. Without an airspeed sensor, set <code>AIRSPEED_MIN</code> to 12–13 for margin.</td></tr>
 <tr><td>Level flight at 0° wing angle</td><td>about 15 m/s</td><td>At 12 m/s the wing needs about 3°</td></tr>
 <tr><td>Wing incidence</td><td>2–3° nose-up</td><td>Relative to the boom, so the fuselage flies level at 13–15 m/s cruise</td></tr>
 <tr><td>Thrust</td><td>3 × 1.3 kg = 3.9 kg</td><td>Verified on 3S. Thrust-to-weight 3.0 at 1.3 kg.</td></tr>
@@ -362,8 +362,8 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 </tr>
 <tr>
 <td>Target cruise speed (m/s)</td>
-<td>13–15</td>
-<td>Stall about 8, minimum 11; see the layout section</td>
+<td>15–16</td>
+<td>Stall about 8. No airspeed sensor, so fly at about twice stall.</td>
 </tr>
 <tr>
 <td>Cube Orange+ + carrier mass (g)</td>
@@ -384,6 +384,11 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <td>Telemetry range, tested (m)</td>
 <td></td>
 <td>Walk test until the fade margin drops to 20</td>
+</tr>
+<tr>
+<td>Airspeed sensor</td>
+<td>None for now (estimated)</td>
+<td>Too expensive for iteration 1; transition into the wind only</td>
 </tr>
 </tbody>
 </table>
@@ -438,8 +443,8 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 </tr>
 <tr>
 <td>I2C</td>
-<td>Airspeed sensor</td>
-<td>MS4525-type, with the pitot tube clear of the prop wash</td>
+<td>Airspeed sensor (later, optional)</td>
+<td>Not fitted for now: see "Flying without an airspeed sensor". If one is added, an MS4525-type with the pitot clear of the prop wash.</td>
 </tr>
 <tr>
 <td>MAIN OUT 1–8</td>
@@ -491,7 +496,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <li class="task"><input type="checkbox"> RC receiver on TELEM2 (CRSF) or RCIN (SBUS), with failsafe set</li>
 <li class="task"><input type="checkbox"> Here 3+ / Here 4 GPS on CAN1, on a mast away from the power wires and the VTX</li>
 <li class="task"><input type="checkbox"> Telemetry radio on TELEM1, antenna vertical and clear of the carbon spar</li>
-<li class="task"><input type="checkbox"> Airspeed sensor on I2C (it makes transitions much safer)</li>
+<li class="task"><input type="checkbox"> No airspeed sensor for now: <code>ARSPD_TYPE</code> = 0, and leave the I2C port free for one later</li>
 <li class="task"><input type="checkbox"> Cube carrier mounted firmly, arrow forward (no extra soft mount)</li>
 </ul>
 <h3>Key parameters (verify each one)</h3>
@@ -561,8 +566,33 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 </tr>
 <tr>
 <td><code>Q_ASSIST_SPEED</code></td>
-<td>Set once airspeed is known</td>
-<td>VTOL motors help if the aircraft gets too slow in plane mode</td>
+<td>About 10, once the airspeed estimate looks right in the logs</td>
+<td>VTOL motors help if the aircraft gets too slow in plane mode. Without a sensor this uses the estimate.</td>
+</tr>
+<tr>
+<td><code>ARSPD_TYPE</code></td>
+<td>0</td>
+<td>No airspeed sensor: ArduPilot estimates airspeed from GPS and its wind estimate</td>
+</tr>
+<tr>
+<td><code>AIRSPEED_MIN</code></td>
+<td>12–13</td>
+<td>Transition completes only above this (<code>ARSPD_FBW_MIN</code> on older firmware). A margin above the 11 m/s you'd use with a sensor.</td>
+</tr>
+<tr>
+<td><code>Q_TRANS_FAIL</code> / <code>Q_TRANS_FAIL_ACT</code></td>
+<td>A few seconds / QLAND or QRTL (check the docs)</td>
+<td>If speed hasn't built up in time, abandon the transition and go back to VTOL</td>
+</tr>
+<tr>
+<td><code>Q_ASSIST_ANGLE</code></td>
+<td>Default (30°)</td>
+<td>VTOL motors help if the attitude goes badly wrong. Doesn't need airspeed.</td>
+</tr>
+<tr>
+<td><code>Q_ASSIST_ALT</code></td>
+<td>About 15 m</td>
+<td>VTOL motors help whenever the aircraft is this low in plane mode. Doesn't need airspeed.</td>
 </tr>
 <tr>
 <td><code>SERIAL1_PROTOCOL</code> / <code>_BAUD</code></td>
@@ -631,6 +661,17 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <li>Connect the dashboard over the telemetry radio. Check that the mode, attitude, battery and tilt angles match the aircraft, and that a mode change sent from the dashboard shows up.</li>
 <li>Fly the same configuration in SITL until the pilot can hover and transition there. The dashboard's Demo mode is useful practice for the ground station operator.</li>
 </ol>
+<h3>Flying without an airspeed sensor</h3>
+<p>The Cube has no airspeed sensor built in. The IMU measures acceleration and rotation, and the GPS measures speed over the ground, but the wing only cares about speed through the air. ArduPilot estimates airspeed by subtracting its wind estimate from the GPS ground speed. That works, but the estimate is weakest during transitions and low, slow flight, so these rules replace the sensor:</p>
+<ul>
+<li><strong>Always transition into the wind.</strong> Into the wind, ground speed is lower than airspeed, so the estimate errs on the safe side. Downwind it errs the dangerous way: the aircraft thinks it's fast enough when the wing is close to stalling.</li>
+<li><strong>The transition is already speed- and time-gated.</strong> ArduPilot holds the front motors partly tilted until the estimate passes <code>AIRSPEED_MIN</code>, and <code>Q_TRANS_FAIL</code> sends it back to VTOL if that takes too long. You don't need custom code for this.</li>
+<li><strong>Fly with margin.</strong> Cruise at 15–16 m/s, about twice the stall speed, instead of 13. Climb before turning downwind, and avoid slow, low turns.</li>
+<li><strong>Calm days first.</strong> The first transitions happen in under about 3 m/s of wind, at 30 m or more, in FBWA with the pilot holding high throttle.</li>
+<li><strong>Practise in SITL with wind.</strong> Set <code>ARSPD_TYPE</code> = 0 and <code>SIM_WIND_SPD</code> = 4–5, and fly transitions both into the wind and downwind to see the difference.</li>
+<li><strong>Use the dashboard's wind readout.</strong> It shows ArduPilot's wind estimate and whether the aircraft has a headwind or a tailwind right now. Start a transition only with a headwind.</li>
+<li><strong>Upgrade path:</strong> a generic MS4525DO clone on I2C, or an analog MPXV7002DP pitot kit on the carrier's ADC pin (check the pin's voltage range first), costs a fraction of a branded sensor and is far better than none.</li>
+</ul>
 <h2 id="radios">Radio links and telemetry</h2>
 <p>A "completely controllable" aircraft uses up to three separate radio links. Each does one job, so losing one never takes out the others.</p>
 <table>
@@ -689,7 +730,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <h2 id="dashboard">Live dashboard</h2>
 <p>The project site has a live ground station at <a href="/dashboard.html">/dashboard.html</a>. It talks MAVLink directly to the ground telemetry radio through the browser's Web Serial API, so the laptop needs no other install.</p>
 <ul>
-<li><strong>Shows:</strong> artificial horizon, altitude, airspeed, groundspeed, climb, heading, throttle, battery voltage and current, GPS fix and satellites, radio RSSI and fade margin, packet loss, both tilt-rotor angles, motor outputs, RC inputs, and a live map with track, home and the aircraft's heading. ArduPilot's own messages scroll in a log.</li>
+<li><strong>Shows:</strong> artificial horizon, altitude, airspeed (marked "estimated" when there's no sensor), groundspeed, wind and current head/tailwind, climb, heading, throttle, battery voltage and current, GPS fix and satellites, radio RSSI and fade margin, packet loss, both tilt-rotor angles, motor outputs, RC inputs, and a live map with track, home and the aircraft's heading. ArduPilot's own messages scroll in a log.</li>
 <li><strong>Controls:</strong> arm and disarm (press and hold), every useful mode, one-tap QLAND / QRTL / RTL, and "fly here": click the map, set an altitude, and the aircraft goes there in GUIDED. Switching from a VTOL mode to a forward-flight mode asks for confirmation, because that starts a transition.</li>
 <li><strong>Logs:</strong> "Save .tlog" downloads everything sent and received, which opens in Mission Planner for replay.</li>
 <li><strong>Demo:</strong> the Demo button runs a simulated aircraft so the team can practise on the dashboard without hardware.</li>
@@ -732,7 +773,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <li>Tethered hover at 20–30 cm (tie to heavy weights, lines short enough that it cannot flip)</li>
 <li>Untethered hover at 1–2 m in QSTABILIZE, then QHOVER</li>
 <li>Hover with partial tilt (<code>Q_TILT_MAX</code> limited)</li>
-<li>Full transition at 30 m or more, with the switch back to QHOVER pre-briefed as the bailout</li>
+<li>Full transition at 30 m or more, into the wind on a calm day, with the switch back to QHOVER pre-briefed as the bailout</li>
 </ol>
 <p>Log every flight: date, battery, mode, what happened, the ArduPilot log file name and the dashboard .tlog file name.</p>
 <h2 id="risks">Risks and mitigations</h2>
@@ -774,7 +815,12 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <tr>
 <td>Transition crash</td>
 <td>Altitude loss as the motors tilt</td>
-<td>SITL practice first, airspeed sensor, <code>Q_ASSIST_SPEED</code>, high altitude, bailout to QHOVER</td>
+<td>SITL practice first, transition into the wind, <code>Q_TRANS_FAIL</code>, <code>Q_ASSIST_ALT</code>, high altitude, bailout to QHOVER</td>
+</tr>
+<tr>
+<td>Airspeed estimate wrong (no sensor)</td>
+<td>Estimated airspeed in the log doesn't match ground speed minus wind; mushy controls downwind</td>
+<td>Transition and turn low only into the wind, cruise at 15–16 m/s, calm days first, add a cheap sensor later</td>
 </tr>
 <tr>
 <td>Telemetry link drops</td>

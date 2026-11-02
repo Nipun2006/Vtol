@@ -37,7 +37,7 @@
   function freshState() {
     return {
       target: null, lastHb: 0, connectedAt: 0, streamsRequested: false, homeAsked: 0,
-      hb: null, att: null, pos: null, hud: null, sys: null, gps: null, servo: null, rc: null, radio: null, home: null,
+      hb: null, att: null, pos: null, hud: null, wind: null, sys: null, gps: null, servo: null, rc: null, radio: null, home: null,
       seq: null, rx: 0, lost: 0, armedSince: 0, flightMs: 0, lastArmed: false,
     };
   }
@@ -114,6 +114,7 @@
       case 'ATTITUDE': s.att = m; break;
       case 'GLOBAL_POSITION_INT': s.pos = m; addTrack(m); break;
       case 'VFR_HUD': s.hud = m; break;
+      case 'WIND': s.wind = m; break;
       case 'SYS_STATUS': s.sys = m; break;
       case 'GPS_RAW_INT': s.gps = m; break;
       case 'SERVO_OUTPUT_RAW': if (m.port === 0) s.servo = m; break;
@@ -500,7 +501,20 @@
     const hud = s.hud, pos = s.pos;
     setText('rAlt', pos ? fmt(pos.relative_alt / 1000, 1, 'm') : '—');
     setText('rClimb', hud ? fmt(hud.climb, 1, 'm/s') : '—');
+    // Without a sensor (SYS_STATUS bit 16 = differential pressure) ArduPilot reports a GPS/wind estimate.
+    const hasPitot = !!(s.sys && (s.sys.sensors_present & 16));
+    setText('asLabel', s.sys && !hasPitot ? 'Airspeed (estimated)' : 'Airspeed');
     setText('rAs', hud ? fmt(hud.airspeed, 1, 'm/s') : '—');
+    if (s.wind) {
+      const w = s.wind, from = ((w.direction % 360) + 360) % 360;
+      const pts = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(from / 45) % 8];
+      setText('rWind', `${w.speed.toFixed(1)}<i>m/s ${pts}</i><span class="wind-arrow" style="transform:rotate(${(from + 180).toFixed(0)}deg)" title="Arrow points where the wind blows to">↑</span>`);
+      if (hud) {
+        const head = w.speed * Math.cos((from - hud.heading) * Math.PI / 180);
+        const cls = head < -2 ? 'var(--bad)' : head < 0 ? 'var(--warn)' : 'var(--ok)';
+        setText('rHead', `<span style="color:${cls}">${Math.abs(head).toFixed(1)}<i>m/s ${head >= 0 ? 'head' : 'tail'}</i></span>`);
+      } else setText('rHead', '—');
+    } else { setText('rWind', '—'); setText('rHead', '—'); }
     setText('rGs', hud ? fmt(hud.groundspeed, 1, 'm/s') : '—');
     setText('rHdg', hud ? fmt(hud.heading, 0, '°') : '—');
     setText('rThr', hud ? fmt(hud.throttle, 0, '%') : '—');

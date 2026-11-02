@@ -25,6 +25,7 @@
         roll: 0, pitch: 0, tilt: 0, yawTilt: 0,
         mah: 0, current: 0.8, cells: 4, capacity: 5000,
         target: null, targetAlt: 30, holdAlt: 15,
+        windFrom: 250, windSpeed: 4.5,
       });
     }
 
@@ -237,8 +238,11 @@
         hdg: Math.round(hdgDeg * 100),
       });
       const thr = !this.armed ? 0 : this.flying ? Math.round(45 + 12 * (1 - this.tilt / 90)) : 10;
+      // Air-relative velocity = ground velocity - wind velocity (wind blows towards windFrom + 180).
+      const wf = this.windFrom * Math.PI / 180, ws = this.windSpeed + 0.6 * Math.sin(this.t * 0.4);
+      const airspeed = Math.hypot(vn + ws * Math.cos(wf), ve + ws * Math.sin(wf));
       this.send('VFR_HUD', {
-        airspeed: this.forward ? this.speed + 0.5 * Math.sin(this.t) : this.speed * 0.6,
+        airspeed: this.flying ? airspeed : 0,
         groundspeed: this.speed, alt: HOME.amsl + this.alt, climb: this.climb,
         heading: Math.round(hdgDeg), throttle: thr,
       });
@@ -271,6 +275,7 @@
         load: 350, voltage_battery: Math.round(volts * 1000), current_battery: Math.round(this.current * 100),
         battery_remaining: Math.max(0, Math.round(100 * (1 - used))),
       });
+      this.send('WIND', { direction: this.windFrom + 4 * Math.sin(this.t * 0.2), speed: this.windSpeed + 0.6 * Math.sin(this.t * 0.4), speed_z: 0 });
       const { lat, lon } = this.latLon();
       this.send('GPS_RAW_INT', {
         time_usec: this.t * 1e6, lat: Math.round(lat * 1e7), lon: Math.round(lon * 1e7),

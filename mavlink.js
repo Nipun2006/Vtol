@@ -19,6 +19,7 @@
     COMMAND_LONG: [76, 152, 'fffffffHBBB', ['param1', 'param2', 'param3', 'param4', 'param5', 'param6', 'param7', 'command', 'target_system', 'target_component', 'confirmation']],
     COMMAND_ACK: [77, 143, 'HB', ['command', 'result']],
     RADIO_STATUS: [109, 185, 'HHBBBBB', ['rxerrors', 'fixed', 'rssi', 'remrssi', 'txbuf', 'noise', 'remnoise']],
+    WIND: [168, 1, 'fff', ['direction', 'speed', 'speed_z']],
     HOME_POSITION: [242, 104, 'iiifff4ffff', ['latitude', 'longitude', 'altitude', 'x', 'y', 'z', 'q', 'approach_x', 'approach_y', 'approach_z']],
     STATUSTEXT: [253, 83, 'B50s', ['severity', 'text']],
   };

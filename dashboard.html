@@ -40,6 +40,7 @@ canvas{display:block;width:100%}
 .readouts div{background:#fff;padding:8px 10px}
 .readouts small,.kv small{display:block;font:500 10.5px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .readouts .v{font-size:20px;font-weight:500}
+.wind-arrow{display:inline-block;font-size:15px;margin-left:4px;color:var(--accent)}
 .readouts .v i,.kv .v i{font-style:normal;font-size:12px;color:var(--muted);margin-left:3px}
 #map{height:460px;border-radius:6px;background:var(--panel)}
 .map-wrap{position:relative}
@@ -104,12 +105,14 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:12.5px}
       <div class="readouts">
         <div><small>Altitude (rel)</small><span class="v" id="rAlt">—</span></div>
         <div><small>Climb</small><span class="v" id="rClimb">—</span></div>
-        <div><small>Airspeed</small><span class="v" id="rAs">—</span></div>
+        <div><small id="asLabel">Airspeed</small><span class="v" id="rAs">—</span></div>
         <div><small>Groundspeed</small><span class="v" id="rGs">—</span></div>
         <div><small>Heading</small><span class="v" id="rHdg">—</span></div>
         <div><small>Throttle</small><span class="v" id="rThr">—</span></div>
         <div><small>Dist. home</small><span class="v" id="rHome">—</span></div>
         <div><small>Flight time</small><span class="v" id="rTime">—</span></div>
+        <div><small>Wind (from)</small><span class="v" id="rWind">—</span></div>
+        <div><small>Head / tailwind</small><span class="v" id="rHead">—</span></div>
       </div>
     </section>
     <section class="card">
