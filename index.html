@@ -217,7 +217,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <h3>From layout to CAD</h3>
 <ol>
 <li><strong>Master sketch.</strong> In Onshape (free, runs in the browser) or Fusion 360, make one top-view sketch with named variables: <code>span</code>, <code>chord</code>, <code>cg_x</code>, <code>a</code>, <code>y_front</code>, <code>prop_d</code>, <code>tail_arm</code>. Draw the lines in the figure above from them. Every part references this sketch, so moving the CG moves everything.</li>
-<li><strong>Airfoil.</strong> Download the NACA 4412 coordinates from airfoiltools.com, import them as a spline, and scale to 250 mm. Cut the spar hole at 28% chord and a second alignment-pin hole near the trailing edge.</li>
+<li><strong>Airfoil.</strong> Ready-made NACA 4412 at 250 mm chord, leading edge at 0,0: <a href="/cad/naca4412-250mm.dxf">DXF</a> (Onshape, Fusion: Insert DXF), <a href="/cad/naca4412-250mm.csv">CSV</a> (Fusion's ImportSplineCSV script) or <a href="/cad/naca4412.dat">.dat</a> (unit chord). Thickness is 30 mm at the spar station. Cut the spar hole at 28% chord and a second alignment-pin hole near the trailing edge.</li>
 <li><strong>Parts, in print order:</strong> tilt pod and mount (bench-test it with an MG995 first), one wing section to weigh, the centre section with the spar sleeve and front pod mounts, the remaining wing sections, the nose pod (sized around the battery, the Cube and the GPS mast), the boom clamp, the rear motor mount, then the tail surfaces.</li>
 <li><strong>Weigh as you go.</strong> Put every printed part on the scale, enter it in the calculator, and tick "weighed". Re-check the CG and the battery position before gluing anything permanent.</li>
 </ol>
