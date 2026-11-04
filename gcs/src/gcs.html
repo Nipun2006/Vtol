@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tri-Tilt GCS</title>
+<meta name="description" content="Standalone ground station for a three-rotor tilt VTOL on PX4 or ArduPilot. One file, works offline, connects over a USB telemetry radio.">
+<style>/*@include ../vendor/leaflet.css*/</style>
+<style>/*@include gcs.css*/</style>
+</head><body>
+<header class="top">
+  <div class="brand"><b>Tri-Tilt GCS</b><span id="apText">No vehicle</span></div>
+  <div class="connect">
+    <select id="linkKind" aria-label="Connection type">
+      <option value="serial">USB / telemetry radio</option>
+      <option value="ws">WebSocket (companion computer)</option>
+      <option value="demo-px4">Demo: PX4 simulator</option>
+      <option value="demo-ap">Demo: ArduPilot simulator</option>
+    </select>
+    <select id="baud" aria-label="Baud rate" title="Radio: must match the Cube port (PX4 SER_TEL1_BAUD, default 57600). USB: any value works.">
+      <option value="57600">57600 (SiK radio)</option>
+      <option value="115200">115200</option>
+      <option value="460800">460800</option>
+      <option value="921600">921600</option>
+    </select>
+    <input id="wsUrl" type="text" aria-label="WebSocket address" spellcheck="false" hidden>
+    <button class="btn primary" id="btnConnect">Connect</button>
+    <button class="btn" id="btnDisconnect" hidden>Disconnect</button>
+  </div>
+  <div class="stats">
+    <div class="stat" id="stLink"><small>Link</small><b id="sLink">—</b><span id="sLinkSub">not connected</span></div>
+    <div class="stat" id="stBatt"><small>Battery</small><b id="sBatt">—</b><span id="sBattSub">&nbsp;</span></div>
+    <div class="stat" id="stGps"><small>GPS</small><b id="sGps">—</b><span id="sGpsSub">&nbsp;</span></div>
+    <div class="stat"><small>Flight time</small><b id="sTime">—</b><span id="sTimeSub">&nbsp;</span></div>
+  </div>
+  <div class="tools">
+    <button class="btn" id="btnVoice" title="Spoken callouts for arming, transitions, link and battery">Voice</button>
+    <button class="btn" id="btnTheme" title="Switch between day (sunlight) and night colours">Night</button>
+    <button class="btn" id="btnLog" disabled title="Download everything sent and received as a .tlog (opens in QGroundControl, Mission Planner, PlotJuggler)">Save log</button>
+  </div>
+</header>
+<div class="banner" id="banner" hidden></div>
+
+<main class="grid">
+  <!-- ============ LEFT: fly ============ -->
+  <div class="col left">
+    <section class="card phase" id="phaseCard" data-phase="nolink">
+      <ol class="steps" aria-label="Flight phase">
+        <li data-step="ground">Ground</li><li data-step="hover">Hover</li><li data-step="trans">Transition</li><li data-step="plane">Plane</li>
+      </ol>
+      <div class="phase-big" id="phaseBig">NO LINK</div>
+      <div class="phase-sub" id="phaseSub">Connect the radio to start</div>
+      <div class="prog" id="phaseProg" hidden><b></b></div>
+      <div class="badges"><span class="badge" id="armBadge">—</span><span class="badge" id="modeBadge">—</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Control <span id="ctrlHint">Connect first</span></h2>
+      <div class="acts">
+        <div class="takeoff" data-show="ground">
+          <button class="btn big go hold" id="btnTakeoff" data-hold="1200"><span class="fill"></span>Hold to take off</button>
+          <label class="alt-in">to <input type="number" id="takeoffAlt" min="3" max="120" step="1" data-setting="takeoffAlt"> m</label>
+        </div>
+        <button class="btn hold" id="btnArm" data-hold="1000" data-show="ground-disarmed"><span class="fill"></span>Hold to arm only (motor check)</button>
+        <button class="btn big plane" id="btnToPlane" data-show="hover">Transition to plane</button>
+        <button class="btn big hover" id="btnToHover" data-show="plane trans">Back to hover</button>
+        <div class="row3" data-show="air">
+          <button class="btn" id="btnHold">Hold here</button>
+          <button class="btn" id="btnRtl">Return home</button>
+          <button class="btn warn" id="btnLand">Land</button>
+        </div>
+        <button class="btn hold danger" id="btnDisarm" data-hold="1200" data-show="ground-armed"><span class="fill"></span>Hold to disarm</button>
+      </div>
+      <details class="modes-box">
+        <summary>All flight modes</summary>
+        <div class="modes" id="modeGrid"></div>
+        <p class="note" id="modeNote"></p>
+      </details>
+      <div class="kill">
+        <button class="btn hold kill-btn" id="btnKill" data-hold="2000"><span class="fill"></span>Hold 2 s: emergency motor stop</button>
+      </div>
+    </section>
+
+    <section class="card" id="readyCard">
+      <h2 id="readyTitle">Ready to fly? <span id="readySum"></span></h2>
+      <ul class="checks" id="readyList"></ul>
+      <div id="transLive" hidden>
+        <div class="tl-row"><span>Time</span><div class="meter"><b id="tlTime"></b></div><span class="mono" id="tlTimeTx">—</span></div>
+        <div class="tl-row"><span>Speed</span><div class="meter"><b id="tlSpd"></b><i id="tlSpdMin"></i></div><span class="mono" id="tlSpdTx">—</span></div>
+        <div class="tl-row"><span>Tilt</span><div class="meter"><b id="tlTilt"></b></div><span class="mono" id="tlTiltTx">—</span></div>
+        <div class="tl-row"><span>Height</span><div class="meter center"><b id="tlAlt"></b></div><span class="mono" id="tlAltTx">—</span></div>
+        <p class="note" id="tlNote"></p>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ CENTER: map + instruments ============ -->
+  <div class="center">
+    <section class="mapcard" id="mapCard">
+      <div id="map"></div>
+      <div class="map-offline" id="mapOffline" hidden>No map tiles here yet. The aircraft, home, trail and fly-here still work on the blank grid.</div>
+      <div class="wind-rose" id="windRose" hidden><svg viewBox="-30 -30 60 60" aria-hidden="true"><circle r="27" fill="none" stroke="currentColor" stroke-opacity=".25"/><text y="-17" text-anchor="middle" font-size="9">N</text><path id="windArrow" d="M0,-20 L6,6 L0,1 L-6,6 Z" fill="currentColor"/></svg><span id="windTx">—</span></div>
+      <div class="map-tools">
+        <button class="btn sm" id="btnFollow">Follow</button>
+        <button class="btn sm" id="btnLayer">Street</button>
+        <button class="btn sm" id="btnClear">Clear trail</button>
+        <button class="btn sm" id="btnCamToggle" hidden>Camera</button>
+      </div>
+      <div class="target-bar" id="targetBar" hidden>
+        <span id="tgtTx">Target</span>
+        <label>at <input type="number" id="flyAlt" min="5" max="400" step="5" data-setting="flyAlt"> m</label>
+        <button class="btn primary sm" id="btnFlyHere">Fly here</button>
+        <button class="btn sm" id="btnTgtCancel" aria-label="Cancel target">✕</button>
+      </div>
+      <div class="cam" id="camBox" hidden>
+        <video id="camVideo" autoplay muted playsinline></video>
+        <img id="camImg" alt="Camera stream" hidden>
+        <div class="cam-bar"><span id="camTx">Camera</span><button class="btn sm" id="btnCamSize" title="Swap camera and map">⤢</button></div>
+      </div>
+    </section>
+    <section class="inst">
+      <div class="adi-wrap"><canvas id="adi" width="400" height="300" aria-label="Attitude indicator"></canvas><span class="mono" id="attTx">—</span></div>
+      <div class="tape-wrap"><canvas id="tape" width="150" height="300" aria-label="Speed tape"></canvas></div>
+      <div class="readouts">
+        <div><small>Height</small><span class="v" id="rAlt">—</span></div>
+        <div><small>Climb</small><span class="v" id="rClimb">—</span></div>
+        <div><small id="asLabel">Airspeed</small><span class="v" id="rAs">—</span></div>
+        <div><small>Groundspeed</small><span class="v" id="rGs">—</span></div>
+        <div><small>Heading</small><span class="v" id="rHdg">—</span></div>
+        <div><small>Wind from</small><span class="v" id="rWind">—</span></div>
+        <div><small>Head/tailwind</small><span class="v" id="rHead">—</span></div>
+        <div><small>Home</small><span class="v" id="rHome">—</span></div>
+        <div><small>Throttle</small><span class="v" id="rThr">—</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ RIGHT: aircraft ============ -->
+  <div class="col right">
+    <section class="card tabs-card">
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="air" aria-selected="true">Aircraft</button>
+        <button role="tab" data-tab="params">Params</button>
+        <button role="tab" data-tab="cam">Camera</button>
+        <button role="tab" data-tab="setup">Setup</button>
+      </div>
+
+      <div class="tab" data-panel="air">
+        <svg id="tri" viewBox="-640 -310 1280 1010" role="img" aria-label="Top view: motor outputs and tilt"></svg>
+        <div class="balance" id="balance"><b>Hover balance</b><span id="balTx">Shown once hovering steadily.</span></div>
+        <div class="kv">
+          <div><small>Radio signal (here / aircraft)</small><span class="v" id="kRssi">—</span></div>
+          <div><small>Fade margin</small><span class="v" id="kFade">—</span></div>
+          <div><small>Round trip</small><span class="v" id="kRtt">—</span></div>
+          <div><small>Packet loss (10 s)</small><span class="v" id="kLoss">—</span></div>
+          <div><small>Data in</small><span class="v" id="kRate">—</span></div>
+          <div><small>Current</small><span class="v" id="kCurr">—</span></div>
+        </div>
+        <details class="sub-d"><summary>Raw outputs and RC input</summary>
+          <div class="bars" id="outBars"></div>
+          <div class="bars" id="rcBars"></div>
+        </details>
+      </div>
+
+      <div class="tab" data-panel="params" hidden>
+        <div class="row"><button class="btn" id="btnParamRead">Read from aircraft</button><span class="note" id="paramTx">Connect, then read.</span></div>
+        <div id="paramTable"></div>
+        <p class="note">Suggested values are for this airframe (1.34 kg, 1.2 m wing, no airspeed sensor). Changes save on the Cube straight away. Change one thing at a time and test it in hover first.</p>
+      </div>
+
+      <div class="tab" data-panel="cam" hidden>
+        <label class="field">Video source
+          <select id="camKind">
+            <option value="none">None</option>
+            <option value="usb">USB video receiver (analog 5.8 GHz grabber, webcam)</option>
+            <option value="mjpeg">MJPEG / image stream URL</option>
+            <option value="whep">WebRTC (WHEP URL, e.g. MediaMTX on a Pi)</option>
+          </select>
+        </label>
+        <label class="field" id="camDevRow" hidden>Device <select id="camDev"></select></label>
+        <label class="field" id="camUrlRow" hidden>Stream URL <input type="text" id="camUrl" spellcheck="false" placeholder="http://192.168.4.1:8889/cam/whep"></label>
+        <div class="row"><button class="btn primary" id="btnCamStart">Start video</button><button class="btn" id="btnCamStop">Stop</button></div>
+        <p class="note" id="camNote">Video shows over the map (bottom right). Click ⤢ on it to swap the camera and the map.</p>
+      </div>
+
+      <div class="tab" data-panel="setup" hidden>
+        <h3>Outputs on the Cube</h3>
+        <div class="settings">
+          <label>Front-right motor</label><input type="number" min="1" max="16" data-setting="m1">
+          <label>Front-left motor</label><input type="number" min="1" max="16" data-setting="m2">
+          <label>Rear motor</label><input type="number" min="1" max="16" data-setting="m3">
+          <label>Left tilt servo</label><input type="number" min="1" max="16" data-setting="tl">
+          <label>Right tilt servo</label><input type="number" min="1" max="16" data-setting="tr">
+          <label>Tilt PWM at 0° (up)</label><input type="number" min="500" max="2500" step="10" data-setting="p0">
+          <label>Tilt PWM at 90° (forward)</label><input type="number" min="500" max="2500" step="10" data-setting="p90">
+        </div>
+        <h3>Airframe</h3>
+        <div class="settings">
+          <label>Battery cells</label><input type="number" min="1" max="14" data-setting="cells">
+          <label>Lowest height for a transition (m)</label><input type="number" min="5" max="200" data-setting="transAlt">
+          <label>Stall speed (m/s)</label><input type="number" min="3" max="40" step="0.5" data-setting="vStall">
+          <label>Minimum plane speed (m/s)</label><input type="number" min="3" max="40" step="0.5" data-setting="vMin">
+          <label>Cruise speed (m/s)</label><input type="number" min="3" max="40" step="0.5" data-setting="vCruise">
+          <label>Front motors ahead of CG, a (mm)</label><input type="number" min="10" max="2000" data-setting="armA">
+          <label>Rear motor behind CG, b (mm)</label><input type="number" min="10" max="2000" data-setting="armB">
+          <label>Battery mass (g)</label><input type="number" min="10" max="5000" data-setting="battG">
+          <label>All-up mass (g)</label><input type="number" min="100" max="20000" data-setting="auwG">
+        </div>
+        <p class="note">Speeds come from the aircraft's own parameters when they've been read (Params tab); these are the fallback. Settings stay in this browser.</p>
+        <h3>WebSocket address</h3>
+        <input type="text" class="wide" spellcheck="false" data-setting="ws">
+        <p class="note">For a companion computer that forwards raw MAVLink over a WebSocket. Not needed for a USB radio.</p>
+        <h3>Map tiles</h3>
+        <p class="note">Tiles you look at are kept in this browser for offline use: open this page with internet before going to the field and look around the flying site at the zoom levels you'll use. <span id="tileTx"></span></p>
+        <button class="btn" id="btnTileClear">Clear saved tiles</button>
+      </div>
+    </section>
+
+    <section class="card log-card">
+      <h2>Messages <span class="mono" id="pktTx">—</span></h2>
+      <ul class="log" id="log"></ul>
+    </section>
+  </div>
+</main>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <h3 id="dlgTitle"></h3>
+    <div id="dlgBody"></div>
+    <div class="dlg-btns"><button class="btn" value="cancel" id="dlgCancel">Cancel</button><button class="btn primary" value="ok" id="dlgOk">OK</button></div>
+  </form>
+</dialog>
+
+<script>/*@include ../vendor/leaflet.js*/</script>
+<script>/*@include ../../mavlink.js*/</script>
+<script>/*@include ../../sim.js*/</script>
+<script>/*@include gcs.js*/</script>
+</body></html>

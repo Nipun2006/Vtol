@@ -41,6 +41,27 @@ a.cta:hover{background:var(--accent)}
 figure.drawing{margin:22px 0;background:#fff;border:1px solid var(--rule);padding:16px}
 figure.drawing svg{display:block;width:100%;height:auto;max-height:760px}
 figure.drawing figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:72ch}
+.parts{display:grid;gap:16px;margin:22px 0}
+.part{display:grid;grid-template-columns:150px 1fr;gap:18px;background:#fff;border:1px solid var(--rule);padding:16px}
+.part-photo{position:relative;aspect-ratio:1;background:var(--panel);border-radius:6px;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.part-photo svg{width:78%}
+.part-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff}
+.part-photo small{font:10px "IBM Plex Mono",monospace;margin-top:4px}
+.part-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px}
+.part-head h3{margin:0;font-size:17px}
+.qty{font:500 13px "IBM Plex Mono",monospace;color:var(--muted)}
+.status{font:500 11px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:4px;background:var(--panel)}
+.status.have{background:#dcfce7;color:#166534}.status.buy{background:#fde8d7;color:#9a3412}.status.check{background:#fef3c7;color:#92400e}
+.role{margin:4px 0 10px;color:var(--muted);font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chips span{font-size:13px;background:var(--panel);border-radius:5px;padding:4px 9px}
+.chips b{font:500 10.5px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-right:6px}
+.part dl{display:grid;grid-template-columns:minmax(120px,190px) 1fr;margin:0;font-size:14px}
+.part dt,.part dd{margin:0;padding:6px 0;border-bottom:1px solid var(--rule)}
+.part dt{color:var(--muted);font-size:13px;padding-right:12px}
+.part-note{font-size:13.5px;margin:12px 0 0;border-left:3px solid var(--accent);padding-left:10px}
+.fill{font:500 11.5px "IBM Plex Mono",monospace;color:#92400e;background:#fef3c7;padding:1px 6px;border-radius:3px}
+@media (max-width:640px){.part{grid-template-columns:1fr}.part-photo{max-width:180px}.part dl{grid-template-columns:1fr}.part dt{border-bottom:0;padding-bottom:0}}
 footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color:var(--muted)}
 @media (max-width:860px){.wrap{grid-template-columns:1fr;gap:0}nav{display:none}h1{font-size:30px}table{display:block;overflow-x:auto}}
 @media print{nav{display:none}.wrap{display:block}body{background:#fff}}
@@ -48,8 +69,8 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <header class="top"><div class="wrap"><div class="kicker">Build reference</div>
 <h1>Tri Tilt-Rotor VTOL</h1>
 <div class="meta">2 November 2026 &nbsp;·&nbsp; 3 motors · 2 tilting · Cube Orange+ · ArduPilot QuadPlane · live MAVLink telemetry</div>
-<a class="cta" href="/dashboard.html">Open the live dashboard →</a> <a class="cta" href="/cg.html" style="background:#fff;color:var(--ink);border:1px solid var(--rule)">Mass and CG calculator</a></div></header>
-<div class="wrap"><nav><a href="#mission">Mission and scope</a><a href="#departments">Departments</a><a href="#design">Design process</a><a href="#layout">Layout</a><a href="#wing">3D-printed wing</a><a href="#tilt">Tilt mechanism with MG995</a><a href="#specs">Spec sheet</a><a href="#cube">Cube flight controller</a><a href="#avionics">Electronics and ArduPilot setup</a><a href="#radios">Radio links and telemetry</a><a href="#dashboard">Live dashboard</a><a href="#preflight">Pre-flight checks and test ladder</a><a href="#risks">Risks and mitigations</a></nav><main><h2 id="mission">Mission and scope</h2>
+<a class="cta" href="/gcs.html">Open the ground station (PX4 / ArduPilot) →</a> <a class="cta" href="/dashboard.html" style="background:#fff;color:var(--ink);border:1px solid var(--rule)">Classic dashboard</a> <a class="cta" href="/cg.html" style="background:#fff;color:var(--ink);border:1px solid var(--rule)">Mass and CG calculator</a></div></header>
+<div class="wrap"><nav><a href="#mission">Mission and scope</a><a href="#departments">Departments</a><a href="#design">Design process</a><a href="#layout">Layout</a><a href="#wing">3D-printed wing</a><a href="#tilt">Tilt mechanism with MG995</a><a href="#specs">Spec sheet</a><a href="#parts">Component datasheets</a><a href="#cube">Cube flight controller</a><a href="#avionics">Electronics and ArduPilot setup</a><a href="#radios">Radio links and telemetry</a><a href="#dashboard">Live dashboard</a><a href="#preflight">Pre-flight checks and test ladder</a><a href="#risks">Risks and mitigations</a></nav><main><h2 id="mission">Mission and scope</h2>
 <p>The goal is a 3-motor tilt-rotor VTOL that hovers stably and tilts its front motors on command. A full transition to forward flight is the stretch goal, not the pass mark.</p>
 <ul>
 <li><strong>Must have:</strong> stable hover in QHOVER, tilt mechanism working on the bench and in flight, live telemetry on the dashboard for every flight.</li>
@@ -392,6 +413,172 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 </tr>
 </tbody>
 </table>
+<h2 id="parts">Component datasheets</h2>
+<p>Every part on the aircraft, with the numbers that matter for weight, power and wiring. Values marked <span class="fill">to fill</span> aren't known yet: copy them from the listing or the label, or weigh and measure the part, then update this page.</p>
+<p><b>Photos:</b> take one photo of each part on a plain background and save it with the file name shown under the drawing (for example <code>img/parts/motor.jpg</code>). It replaces the drawing automatically.</p>
+<div class="parts">
+<article class="part" id="part-motor">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="38" y="20" width="44" height="40" rx="6"/><path d="M38 30h44M38 40h44M38 50h44" opacity=".35"/><path d="M60 8v12"/><rect x="34" y="60" width="52" height="8" rx="2"/><path d="M48 68v10M60 68v10M72 68v10"/></svg>
+<img src="/img/parts/motor.jpg" alt="DYS 1100 kV brushless outrunner, 35 × 30 mm" loading="lazy" onerror="this.remove()"><small>img/parts/motor.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>DYS 1100 kV brushless outrunner, 35 × 30 mm</h3><span class="qty">× 3</span><span class="status have">In hand</span></div>
+<p class="role">Lift and thrust: two tilting front motors and one fixed rear motor</p>
+<div class="chips"><span><b>Weight</b>74 g (weighed 75 g)</span><span><b>Max current</b>30.8 A</span><span><b>Max pull</b>1180 g (listing) · 1300 g on our stand, 3S</span></div>
+<dl><dt>Brand</dt><dd>DYS</dd><dt>Model</dt><dd>35×30 size (D3530 series), check the label</dd><dt>kV</dt><dd>1100 rpm/V</dd><dt>Battery</dt><dd>2–4S LiPo</dd><dt>Shaft</dt><dd>5.0 mm</dd><dt>Motor size</dt><dd>35 × 30 mm</dd><dt>Weight</dt><dd>74 g</dd><dt>Max current</dt><dd>30.8 A</dd><dt>Max pull</dt><dd>1180 g</dd><dt>Suggested ESC</dt><dd>50 A</dd><dt>Suggested props</dt><dd>10×6 / 8×6 / 7×3</dd><dt>Mount pattern</dt><dd><span class="fill">to fill</span></dd><dt>Internal resistance</dt><dd><span class="fill">to fill</span></dd></dl>
+<p class="part-note">The listing says 1180 g maximum pull; our thrust stand measured 1.3 kg on 3S. Use our measured curve for hover throttle, and the listing figure as the conservative limit.</p>
+</div></article>
+<article class="part" id="part-esc">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="30" y="30" width="60" height="30" rx="5"/><path d="M90 38h20M90 45h20M90 52h20M30 40H10M30 50H10"/><path d="M40 40h30" opacity=".35"/></svg>
+<img src="/img/parts/esc.jpg" alt="60 A brushless ESC" loading="lazy" onerror="this.remove()"><small>img/parts/esc.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>60 A brushless ESC</h3><span class="qty">× 3</span><span class="status have">In hand</span></div>
+<p class="role">Drives one motor each</p>
+<div class="chips"><span><b>Weight</b>16 g</span><span><b>Continuous</b>60 A</span><span><b>Margin</b>2× the motor&#x27;s 30.8 A</span></div>
+<dl><dt>Brand / model</dt><dd><span class="fill">to fill</span></dd><dt>Continuous current</dt><dd>60 A</dd><dt>Burst current</dt><dd><span class="fill">to fill</span></dd><dt>LiPo cells</dt><dd><span class="fill">to fill</span></dd><dt>BEC</dt><dd>To fill (don&#x27;t power anything from ESC BECs on the Cube rail)</dd><dt>Firmware</dt><dd>To fill (BLHeli_S / BLHeli_32 / AM32 / SimonK)</dd><dt>Protocol</dt><dd>To fill (PWM / OneShot / DShot)</dd><dt>Weight</dt><dd>16 g</dd></dl>
+<p class="part-note">Set PWM_MAIN_MIN/MAX (PX4) or SERVOx_MIN/MAX (ArduPilot) to match the ESC calibration. If the firmware supports DShot, use it: no calibration needed.</p>
+</div></article>
+<article class="part" id="part-servo-tilt">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="30" y="28" width="60" height="36" rx="3"/><path d="M20 34h10M90 34h10M20 34v6M100 34v6"/><circle cx="48" cy="22" r="8"/><path d="M48 22h26"/><path d="M60 64v14" /></svg>
+<img src="/img/parts/servo-tilt.jpg" alt="TowerPro MG995 metal-gear servo" loading="lazy" onerror="this.remove()"><small>img/parts/servo-tilt.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>TowerPro MG995 metal-gear servo</h3><span class="qty">× 2</span><span class="status have">In hand</span></div>
+<p class="role">Tilts the front motor pods</p>
+<div class="chips"><span><b>Weight</b>42 g listed · datasheet 55 g</span><span><b>Stall torque</b>10 kg·cm at 6 V</span><span><b>Stall current</b>up to about 2.5 A each</span></div>
+<dl><dt>Brand</dt><dd>TowerPro (or clone)</dd><dt>Operating voltage</dt><dd>4.8–7.2 V</dd><dt>Stall torque</dt><dd>8.5 kg·cm at 4.8 V, 10 kg·cm at 6 V</dd><dt>Speed</dt><dd>0.20 s/60° at 4.8 V, 0.16 s/60° at 6 V</dd><dt>Gears</dt><dd>Metal</dd><dt>Size</dt><dd>40.7 × 19.7 × 42.9 mm</dd><dt>Weight</dt><dd>55 g datasheet (you listed 42 g: weigh one)</dd><dt>Running current</dt><dd>about 0.5–0.9 A at 6 V</dd><dt>Stall current</dt><dd>up to about 2.5 A at 6 V (typical listing)</dd><dt>Signal</dt><dd>PWM 50 Hz, 1000–2000 µs</dd></dl>
+<p class="part-note">Two MG995s stalling can draw 5 A, which the Cube cannot supply. Power the servo rail from the separate 5–6 V BEC below, never from the Cube.</p>
+</div></article>
+<article class="part" id="part-fc">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="52" width="92" height="22" rx="3"/><rect x="34" y="14" width="52" height="40" rx="6"/><path d="M60 26v10M54 31l6-5 6 5"/><circle cx="24" cy="63" r="3"/><circle cx="96" cy="63" r="3"/></svg>
+<img src="/img/parts/fc.jpg" alt="CubePilot Cube Orange+ Standard Set, ADS-B carrier" loading="lazy" onerror="this.remove()"><small>img/parts/fc.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>CubePilot Cube Orange+ Standard Set, ADS-B carrier</h3><span class="qty">× 1</span><span class="status have">In hand</span></div>
+<p class="role">Flight controller: runs PX4 or ArduPilot</p>
+<div class="chips"><span><b>Weight</b>75 g (weighed)</span><span><b>Power</b>4.1–5.7 V</span><span><b>Outputs</b>8 MAIN + 6 AUX</span></div>
+<dl><dt>Processor</dt><dd>STM32H757 dual-core (Cortex-M7 + M4)</dd><dt>Sensors</dt><dd>3 IMUs (2 vibration-isolated and heated), 2 barometers</dd><dt>ADS-B</dt><dd>Built-in receiver on the carrier board (1090 MHz)</dd><dt>Ports</dt><dd>TELEM1, TELEM2, GPS1, GPS2, CAN1, CAN2, I2C, SBUS/RC IN, USB</dd><dt>PWM outputs</dt><dd>8 MAIN (through the I/O processor) + 6 AUX</dd><dt>Power input</dt><dd>POWER1 and POWER2 bricks, 4.1–5.7 V</dd><dt>Servo rail</dt><dd>Not powered by the Cube: feed it from a BEC</dd><dt>Firmware</dt><dd>PX4 1.14+ (cubepilot_cubeorangeplus) or ArduPilot</dd><dt>Weight</dt><dd>75 g as weighed (cube + carrier? confirm)</dd><dt>Current draw</dt><dd>about 0.3 A at 5 V (estimate)</dd></dl>
+<p class="part-note">Mount it arrow-forward on foam near the CG. On PX4, TELEM1 runs MAVLink at 57600 by default, so the telemetry radio works with no setup.</p>
+</div></article>
+<article class="part" id="part-battery">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="16" y="28" width="80" height="36" rx="5"/><path d="M30 28v36M44 28v36" opacity=".35"/><path d="M96 38h14M96 54h14"/></svg>
+<img src="/img/parts/battery.jpg" alt="3S LiPo pack" loading="lazy" onerror="this.remove()"><small>img/parts/battery.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>3S LiPo pack</h3><span class="qty">× 1</span><span class="status have">In hand</span></div>
+<p class="role">Power for everything</p>
+<div class="chips"><span><b>Weight</b>165 g</span><span><b>Voltage</b>11.1 V nominal, 12.6 V full</span><span><b>Capacity</b>to fill</span></div>
+<dl><dt>Brand / model</dt><dd><span class="fill">to fill</span></dd><dt>Cells</dt><dd>3S (11.1 V nominal, 12.6 V full, 10.5 V empty under load)</dd><dt>Capacity</dt><dd>To fill (165 g is typical of 1500–2200 mAh)</dd><dt>C rating</dt><dd>To fill: needs ≥ 92 A ÷ capacity in Ah (≈ 42C at 2200 mAh)</dd><dt>Connector</dt><dd>To fill (XT60 recommended)</dd><dt>Weight</dt><dd>165 g</dd></dl>
+<p class="part-note">All three motors at full power draw about 92 A. Check the pack can deliver that, and confirm the capacity before trusting the flight time.</p>
+</div></article>
+<article class="part" id="part-telem">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="30" y="38" width="54" height="34" rx="4"/><path d="M76 38V8"/><path d="M84 52h14" /><circle cx="42" cy="50" r="2.5"/></svg>
+<img src="/img/parts/telem.jpg" alt="SiK telemetry radio pair, 433 MHz (Holybro SiK V3 or similar)" loading="lazy" onerror="this.remove()"><small>img/parts/telem.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>SiK telemetry radio pair, 433 MHz (Holybro SiK V3 or similar)</h3><span class="qty">× 1</span><span class="status buy">To buy</span></div>
+<p class="role">Telemetry link to the ground station</p>
+<div class="chips"><span><b>Band</b>433 MHz</span><span><b>Power</b>up to 100 mW</span><span><b>Weight (air)</b>to fill</span></div>
+<dl><dt>Frequency</dt><dd>433 MHz. 915 MHz is not license-exempt in India: buy the 433 version (865–867 MHz also allowed).</dd><dt>Output power</dt><dd>up to 100 mW (20 dBm)</dd><dt>Air data rate</dt><dd>64 kbps default</dd><dt>Serial</dt><dd>57600 baud to the Cube (TELEM1)</dd><dt>Range</dt><dd>About 1 km+ with stock antennas (depends on antennas and site)</dd><dt>Interfaces</dt><dd>Air: 6-pin JST-GH to Cube TELEM1. Ground: USB to the laptop.</dd><dt>Power</dt><dd>5 V from TELEM1, about 100 mA receiving, up to about 500 mA transmitting</dd><dt>Weight (air unit)</dt><dd><span class="fill">to fill</span></dd></dl>
+<p class="part-note">Ground unit plugs into the laptop and shows up as a serial port; the GCS connects to it at 57600.</p>
+</div></article>
+<article class="part" id="part-gps">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="46" r="30"/><path d="M60 30v22M52 38l8-8 8 8"/><path d="M60 76v6"/></svg>
+<img src="/img/parts/gps.jpg" alt="CubePilot Here GPS (on CAN1)" loading="lazy" onerror="this.remove()"><small>img/parts/gps.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>CubePilot Here GPS (on CAN1)</h3><span class="qty">× 1</span><span class="status check">In hand?</span></div>
+<p class="role">Position, heading (compass), home point</p>
+<div class="chips"><span><b>Bus</b>DroneCAN (CAN1)</span><span><b>Weight</b>to fill</span></div>
+<dl><dt>Model</dt><dd>To fill (Here 3 / Here 3+ / Here 4)</dd><dt>Connection</dt><dd>CAN1 (DroneCAN). PX4: UAVCAN_ENABLE = 2. ArduPilot: CAN_P1_DRIVER = 1.</dd><dt>Includes</dt><dd>GNSS receiver, compass, LED, safety button (model-dependent)</dd><dt>Power</dt><dd>5 V from the CAN port</dd><dt>Weight</dt><dd><span class="fill">to fill</span></dd></dl>
+<p class="part-note">Mount it on a short mast, away from the battery leads and ESCs, so the compass reads clean.</p>
+</div></article>
+<article class="part" id="part-rx">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="38" width="30" height="20" rx="3"/><path d="M70 48h40"/><path d="M40 44H20M40 52H20"/></svg>
+<img src="/img/parts/rx.jpg" alt="ExpressLRS 2.4 GHz receiver" loading="lazy" onerror="this.remove()"><small>img/parts/rx.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>ExpressLRS 2.4 GHz receiver</h3><span class="qty">× 1</span><span class="status buy">To buy</span></div>
+<p class="role">RC link: the pilot&#x27;s sticks (primary control)</p>
+<div class="chips"><span><b>Protocol</b>CRSF</span><span><b>Weight</b>about 1–2 g</span></div>
+<dl><dt>Model</dt><dd><span class="fill">to fill</span></dd><dt>Frequency</dt><dd>2.4 GHz</dd><dt>Output</dt><dd>CRSF to Cube TELEM2 (PX4: RC_CRSF_PRT_CFG = TELEM 2; ArduPilot: SERIAL2_PROTOCOL = 23)</dd><dt>Latency</dt><dd>about 4–20 ms depending on packet rate</dd><dt>Power</dt><dd>5 V, under 0.1 A</dd><dt>Weight</dt><dd>about 1–2 g</dd></dl>
+<p class="part-note">The transmitter stays the primary control. The GCS sends commands (modes, transitions, fly-here), not stick inputs.</p>
+</div></article>
+<article class="part" id="part-pm">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="42" y="34" width="36" height="24" rx="3"/><rect x="16" y="38" width="14" height="16" rx="2"/><rect x="90" y="38" width="14" height="16" rx="2"/><path d="M30 46h12M78 46h12M60 58v16"/></svg>
+<img src="/img/parts/pm.jpg" alt="Power module / power brick (Cube set)" loading="lazy" onerror="this.remove()"><small>img/parts/pm.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>Power module / power brick (Cube set)</h3><span class="qty">× 1</span><span class="status check">In hand?</span></div>
+<p class="role">Measures battery voltage and current, powers the Cube</p>
+<div class="chips"><span><b>Output</b>5.3 V to the Cube</span><span><b>Weight</b>to fill</span></div>
+<dl><dt>Model</dt><dd><span class="fill">to fill</span></dd><dt>Input</dt><dd>To fill (check it covers 3S)</dd><dt>Current sensing</dt><dd>To fill: calibrate in QGroundControl, Power tab</dd><dt>Connector to Cube</dt><dd>POWER1</dd><dt>Weight</dt><dd><span class="fill">to fill</span></dd></dl>
+<p class="part-note">Without it the dashboard shows no battery voltage, and the low-battery callouts won&#x27;t work.</p>
+</div></article>
+<article class="part" id="part-bec">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="34" width="40" height="24" rx="4"/><path d="M40 42H16M40 50H16M80 46h24"/></svg>
+<img src="/img/parts/bec.jpg" alt="5–6 V UBEC, 5 A or more" loading="lazy" onerror="this.remove()"><small>img/parts/bec.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>5–6 V UBEC, 5 A or more</h3><span class="qty">× 1</span><span class="status buy">To buy</span></div>
+<p class="role">Powers the Cube servo rail (tilt servos and surface servos)</p>
+<div class="chips"><span><b>Output</b>5–6 V, ≥ 5 A</span><span><b>Weight</b>about 10–20 g</span></div>
+<dl><dt>Input</dt><dd>2–6S</dd><dt>Output</dt><dd>5.0–6.0 V selectable, at least 5 A continuous</dd><dt>Connection</dt><dd>Servo rail + and −, any free output</dd><dt>Weight</dt><dd>About 10–20 g (to fill)</dd></dl>
+<p class="part-note">Sized for both MG995s stalling at once plus four small servos. Use 6 V for more MG995 torque if the surface servos accept it.</p>
+</div></article>
+<article class="part" id="part-servo-surf">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="34" width="40" height="24" rx="2"/><path d="M32 38h8M80 38h8"/><circle cx="52" cy="29" r="5"/><path d="M52 29h16"/></svg>
+<img src="/img/parts/servo-surf.jpg" alt="Tower Pro MG90S metal-gear micro servo (recommended)" loading="lazy" onerror="this.remove()"><small>img/parts/servo-surf.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>Tower Pro MG90S metal-gear micro servo (recommended)</h3><span class="qty">× 4</span><span class="status buy">To buy</span></div>
+<p class="role">Ailerons ×2, elevator, rudder</p>
+<div class="chips"><span><b>Weight</b>13.4 g</span><span><b>Torque</b>1.8 kg·cm at 4.8 V</span></div>
+<dl><dt>Operating voltage</dt><dd>4.8–6 V</dd><dt>Stall torque</dt><dd>1.8 kg·cm at 4.8 V, 2.2 kg·cm at 6 V</dd><dt>Speed</dt><dd>0.10 s/60° at 4.8 V</dd><dt>Gears</dt><dd>Metal</dd><dt>Weight</dt><dd>13.4 g</dd></dl>
+<p class="part-note">The layout assumed four 9 g servos. Metal-gear MG90S cost about 4 g more each but survive hard landings.</p>
+</div></article>
+<article class="part" id="part-prop">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="34" cy="46" rx="28" ry="7" transform="rotate(-12 34 46)"/><ellipse cx="86" cy="46" rx="28" ry="7" transform="rotate(-12 86 46)"/><circle cx="60" cy="46" r="6"/></svg>
+<img src="/img/parts/prop.jpg" alt="10×6 propellers (CW/CCW set)" loading="lazy" onerror="this.remove()"><small>img/parts/prop.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>10×6 propellers (CW/CCW set)</h3><span class="qty">× 3</span><span class="status check">To confirm</span></div>
+<p class="role">One per motor</p>
+<div class="chips"><span><b>Size</b>10 × 6 in</span><span><b>Weight</b>to fill</span></div>
+<dl><dt>Size</dt><dd>10 × 6 in (motor listing suggests 10×6 / 8×6 / 7×3)</dd><dt>Directions</dt><dd>Front pair: one CW, one CCW. Rear: match the motor&#x27;s spin direction.</dd><dt>Material</dt><dd><span class="fill">to fill</span></dd><dt>Weight</dt><dd><span class="fill">to fill</span></dd></dl>
+<p class="part-note">Balance every prop. Vibration from an unbalanced prop on a tilting pod shows up straight in the Cube&#x27;s IMU.</p>
+</div></article>
+<article class="part" id="part-spar">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 40h96M12 54h96"/><ellipse cx="12" cy="47" rx="3" ry="7"/><ellipse cx="108" cy="47" rx="3" ry="7"/><ellipse cx="108" cy="47" rx="1.5" ry="4.5"/></svg>
+<img src="/img/parts/spar.jpg" alt="Carbon tube 10 × 8 mm × 1000 mm" loading="lazy" onerror="this.remove()"><small>img/parts/spar.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>Carbon tube 10 × 8 mm × 1000 mm</h3><span class="qty">× 1</span><span class="status buy">To buy</span></div>
+<p class="role">Main wing spar at x = 70</p>
+<div class="chips"><span><b>Weight</b>about 44 g</span></div>
+<dl><dt>OD × ID</dt><dd>10 × 8 mm</dd><dt>Length</dt><dd>1000 mm, centred</dd><dt>Type</dt><dd>Pultruded is fine</dd><dt>Weight</dt><dd>about 44 g</dd></dl>
+<p class="part-note">Hole in the printed ribs: measure the tube and print a tolerance test first.</p>
+</div></article>
+<article class="part" id="part-rod2">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 40h96M12 54h96"/><ellipse cx="12" cy="47" rx="3" ry="7"/><ellipse cx="108" cy="47" rx="3" ry="7"/><ellipse cx="108" cy="47" rx="1.5" ry="4.5"/></svg>
+<img src="/img/parts/rod2.jpg" alt="Carbon rod 4 mm × 1000 mm" loading="lazy" onerror="this.remove()"><small>img/parts/rod2.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>Carbon rod 4 mm × 1000 mm</h3><span class="qty">× 1</span><span class="status buy">To buy</span></div>
+<p class="role">Second wing rod at x ≈ 175 (stops sections twisting)</p>
+<div class="chips"><span><b>Weight</b>about 20 g</span></div>
+<dl><dt>Diameter</dt><dd>4 mm solid (or 5 × 3 tube)</dd><dt>Length</dt><dd>1000 mm</dd><dt>Weight</dt><dd>about 20 g</dd></dl>
+</div></article>
+<article class="part" id="part-boom">
+<div class="part-photo"><svg viewBox="0 0 120 90" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 40h96M12 54h96"/><ellipse cx="12" cy="47" rx="3" ry="7"/><ellipse cx="108" cy="47" rx="3" ry="7"/><ellipse cx="108" cy="47" rx="1.5" ry="4.5"/></svg>
+<img src="/img/parts/boom.jpg" alt="Carbon tube 12 × 10 mm × 700 mm" loading="lazy" onerror="this.remove()"><small>img/parts/boom.jpg</small></div>
+<div class="part-body">
+<div class="part-head"><h3>Carbon tube 12 × 10 mm × 700 mm</h3><span class="qty">× 1</span><span class="status buy">To buy</span></div>
+<p class="role">Central boom: rear motor and tail</p>
+<div class="chips"><span><b>Weight</b>about 38 g</span></div>
+<dl><dt>OD × ID</dt><dd>12 × 10 mm</dd><dt>Length</dt><dd>about 700 mm</dd><dt>Type</dt><dd>Roll-wrapped (it twists under motor torque)</dd><dt>Weight</dt><dd>about 38 g</dd></dl>
+<p class="part-note">Spread clamp loads over 20 mm or more; carbon tube cracks under a narrow clamp.</p>
+</div></article>
+</div>
+<h3>Checks from these numbers</h3>
+<table>
+<thead><tr><th>Check</th><th>Numbers</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Motor vs ESC current</td><td>30.8 A max per motor, 60 A ESC</td><td>OK: 2× margin</td></tr>
+<tr><td>Battery peak current</td><td>3 × 30.8 A ≈ 92 A at full power</td><td>To check: the pack needs a C rating of at least 92 ÷ capacity in Ah</td></tr>
+<tr><td>Servo rail current</td><td>2 × MG995 stall ≈ 5 A, plus 4 × MG90S</td><td>Needs the separate 5 A+ BEC; the Cube can't supply it</td></tr>
+<tr><td>Hover current (estimate)</td><td>About 445 g per motor, about 34% of max thrust</td><td>Roughly 15–25 A total. Measure it on the first hover (the GCS shows current).</td></tr>
+<tr><td>Hover time (estimate)</td><td>80% of capacity ÷ hover current</td><td>About 4–7 min for a 1500–2200 mAh pack. Plane mode uses much less.</td></tr>
+<tr><td>Thrust-to-weight</td><td>3 × 1.3 kg ÷ 1.34 kg</td><td>2.9: OK (minimum 2)</td></tr>
+</tbody>
+</table>
 <h2 id="cube">Cube flight controller</h2>
 <p>The brain is our <strong>Cube Orange+</strong> running ArduPilot Plane. The Cube's IMUs sit on a heated, vibration-isolated board inside the cube, and it plugs into a carrier board that holds all the connectors.</p>
 <ul>
@@ -728,6 +915,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 40px;font-size:13px;color
 <p>With the aircraft on the ground and props off, walk the ground radio away with the dashboard open. Note where the fade margin drops below about 20 and where packet loss starts. Do the same with the RC link using the transmitter's range-check mode. Fly well inside both distances.</p>
 
 <h2 id="dashboard">Live dashboard</h2>
+<div class="callout"><p><b>New: <a href="/gcs.html">Tri-Tilt GCS</a></b>, a standalone ground station built for this aircraft. It works with PX4 and ArduPilot (it detects which), and it's one file: save <a href="/gcs.html" download>gcs.html</a> to the laptop and double-click it at the field. No internet or install needed (Chrome or Edge). It shows the flight phase (ground → hover → transition → plane), checks before each transition, a live transition timer, motor outputs and tilt on a top view, the CG estimated from hover motor balance, the radio round-trip time, and spoken callouts. There's also a slot for a camera feed.</p></div>
 <p>The project site has a live ground station at <a href="/dashboard.html">/dashboard.html</a>. It talks MAVLink directly to the ground telemetry radio through the browser's Web Serial API, so the laptop needs no other install.</p>
 <ul>
 <li><strong>Shows:</strong> artificial horizon, altitude, airspeed (marked "estimated" when there's no sensor), groundspeed, wind and current head/tailwind, climb, heading, throttle, battery voltage and current, GPS fix and satellites, radio RSSI and fade margin, packet loss, both tilt-rotor angles, motor outputs, RC inputs, and a live map with track, home and the aircraft's heading. ArduPilot's own messages scroll in a log.</li>

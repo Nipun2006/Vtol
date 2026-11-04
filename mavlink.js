@@ -22,17 +22,25 @@
     WIND: [168, 1, 'fff', ['direction', 'speed', 'speed_z']],
     HOME_POSITION: [242, 104, 'iiifff4ffff', ['latitude', 'longitude', 'altitude', 'x', 'y', 'z', 'q', 'approach_x', 'approach_y', 'approach_z']],
     STATUSTEXT: [253, 83, 'B50s', ['severity', 'text']],
+    PARAM_REQUEST_READ: [20, 214, 'hBB16s', ['param_index', 'target_system', 'target_component', 'param_id']],
+    PARAM_VALUE: [22, 220, 'fHH16sB', ['param_value', 'param_count', 'param_index', 'param_id', 'param_type']],
+    PARAM_SET: [23, 168, 'fBB16sB', ['param_value', 'target_system', 'target_component', 'param_id', 'param_type']],
+    TIMESYNC: [111, 34, 'qq', ['tc1', 'ts1']],
+    AUTOPILOT_VERSION: [148, 178, 'QQIIIIHH8B8B8B', ['capabilities', 'uid', 'flight_sw_version', 'middleware_sw_version', 'os_sw_version', 'board_version', 'vendor_id', 'product_id', 'flight_custom_version', 'middleware_custom_version', 'os_custom_version']],
+    WIND_COV: [231, 105, 'Qffffffff', ['time_usec', 'wind_x', 'wind_y', 'wind_z', 'var_horiz', 'var_vert', 'wind_alt', 'horiz_accuracy', 'vert_accuracy']],
+    EXTENDED_SYS_STATE: [245, 130, 'BB', ['vtol_state', 'landed_state']],
+    ADSB_VEHICLE: [246, 184, 'IiiiHHhHHB9sBB', ['ICAO_address', 'lat', 'lon', 'altitude', 'heading', 'hor_velocity', 'ver_velocity', 'flags', 'squawk', 'altitude_type', 'callsign', 'emitter_type', 'tslc']],
   };
 
   // CRC extras for every ardupilotmega message, so frames we don't decode can still be
   // validated before they are skipped (otherwise a stray 0xFD byte can swallow good frames).
   const CRC_EXTRA = {0:50,1:124,2:137,4:237,5:217,6:104,7:119,11:89,20:214,21:159,22:220,23:168,24:24,25:23,26:170,27:144,28:67,29:115,30:39,31:246,32:185,33:104,34:237,35:244,36:222,37:212,38:9,39:254,40:230,41:28,42:28,43:132,44:221,45:232,46:11,47:153,48:41,49:39,50:78,51:196,54:15,55:3,61:167,62:183,63:119,64:191,65:118,66:148,67:21,69:243,70:124,73:38,74:20,75:158,76:152,77:143,81:106,82:49,83:22,84:143,85:140,86:5,87:150,89:231,90:183,91:63,92:54,93:47,100:175,101:102,102:158,103:208,104:56,105:93,106:138,107:108,108:32,109:185,110:84,111:34,112:174,113:124,114:237,115:4,116:76,117:128,118:56,119:116,120:134,121:237,122:203,123:250,124:87,125:203,126:220,127:25,128:226,129:46,130:29,131:223,132:85,133:6,134:229,135:203,136:1,137:195,138:109,139:168,140:181,141:47,142:72,143:131,144:127,146:103,147:154,148:178,149:200,150:134,151:219,152:208,153:188,154:84,155:22,156:19,157:21,158:134,160:78,161:68,162:189,163:127,164:154,165:21,166:21,167:144,168:1,169:234,170:73,171:181,172:22,173:83,174:167,175:138,176:234,177:240,178:47,179:189,180:52,181:174,182:229,183:85,184:159,185:186,186:72,191:92,192:36,193:71,194:98,195:120,200:134,201:205,214:69,215:101,216:50,217:202,218:17,219:162,225:208,226:207,230:163,231:105,232:151,233:35,234:150,235:179,241:90,242:104,243:85,244:95,245:130,246:184,247:81,248:8,249:204,250:49,251:170,252:44,253:83,254:46,256:71,257:131,258:187,259:92,260:146,261:179,262:12,263:133,264:49,265:26,266:193,267:35,268:14,269:109,270:59,271:22,275:126,276:18,277:62,280:70,281:48,282:123,283:74,284:99,285:137,286:210,287:1,288:20,299:19,301:243,310:28,311:95,320:243,321:88,322:243,323:78,324:132,330:23,331:91,332:236,333:231,335:225,339:199,340:99,350:232,370:75,373:117,375:251,376:199,385:147,386:132,387:4,388:8,9000:113,9005:117,10001:209,10002:186,10003:4,10004:133,10005:103,10006:193,10007:71,10008:240,10151:195,11000:134,11001:15,11002:234,11003:64,11004:11,11005:93,11010:46,11011:106,11020:205,11030:144,11031:133,11032:85,11033:195,11034:79,11035:128,11036:177,11037:130,11038:47,11039:142,11040:132,11041:208,11042:201,11043:193,11044:189,12900:114,12901:254,12902:140,12903:249,12904:77,12905:49,12915:94,12918:139,12919:7,12920:20,42000:227,42001:239,50001:246,50002:181,50003:62,50004:240,50005:152,52000:13,52001:239};
 
-  const SIZES = { B: 1, b: 1, H: 2, h: 2, I: 4, i: 4, f: 4, Q: 8, s: 1 };
+  const SIZES = { B: 1, b: 1, H: 2, h: 2, I: 4, i: 4, f: 4, Q: 8, q: 8, s: 1 };
 
   function parseFormat(fmt) {
     const out = [];
-    const re = /(\d*)([BbHhIifQs])/g;
+    const re = /(\d*)([BbHhIifQqs])/g;
     let m, off = 0;
     while ((m = re.exec(fmt))) {
       const n = m[1] ? parseInt(m[1], 10) : 1;
@@ -62,6 +70,7 @@
       case 'i': return dv.getInt32(off, true);
       case 'f': return dv.getFloat32(off, true);
       case 'Q': return Number(dv.getBigUint64(off, true));
+      case 'q': return Number(dv.getBigInt64(off, true));
     }
   }
 
@@ -75,6 +84,7 @@
       case 'i': dv.setInt32(off, v, true); break;
       case 'f': dv.setFloat32(off, v, true); break;
       case 'Q': dv.setBigUint64(off, BigInt(Math.round(v)), true); break;
+      case 'q': dv.setBigInt64(off, BigInt(Math.round(v)), true); break;
     }
   }
 
@@ -239,7 +249,46 @@
   const MODE_NUMBERS = {};
   for (const k in PLANE_MODES) MODE_NUMBERS[PLANE_MODES[k]] = Number(k);
 
-  const api = { DEFS, BY_ID, BY_NAME, Encoder, Parser, crcCalc, PLANE_MODES, MODE_NUMBERS };
+  // PX4 packs its mode into custom_mode as main mode (bits 16-23) and sub mode (bits 24-31).
+  const PX4_MODES = {
+    MANUAL: [1, 0], STABILIZED: [7, 0], ACRO: [5, 0], ALTCTL: [2, 0], POSCTL: [3, 0], OFFBOARD: [6, 0],
+    TAKEOFF: [4, 2], HOLD: [4, 3], MISSION: [4, 4], RTL: [4, 5], LAND: [4, 6], VTOL_TAKEOFF: [4, 10],
+  };
+  function px4Mode(customMode) {
+    const main = (customMode >>> 16) & 0xff, sub = (customMode >>> 24) & 0xff;
+    for (const k in PX4_MODES) {
+      const [m, s] = PX4_MODES[k];
+      if (m === main && (m !== 4 || s === sub)) return k;
+    }
+    return main === 4 ? 'AUTO ' + sub : 'MODE ' + main;
+  }
+  function px4CustomMode(name) {
+    const [main, sub] = PX4_MODES[name];
+    return ((main << 16) | (sub << 24)) >>> 0;
+  }
+
+  // PX4 sends integer parameters "bytewise": the int32 bits travel inside the float field.
+  // ArduPilot casts them to float instead.
+  const _pv = new DataView(new ArrayBuffer(4));
+  function paramFromWire(value, type, bytewise) {
+    if (type === 9 || !bytewise) return value;
+    _pv.setFloat32(0, value, true);
+    switch (type) {
+      case 1: return _pv.getUint8(0);
+      case 2: return _pv.getInt8(0);
+      case 3: return _pv.getUint16(0, true);
+      case 4: return _pv.getInt16(0, true);
+      case 5: return _pv.getUint32(0, true);
+      default: return _pv.getInt32(0, true);
+    }
+  }
+  function paramToWire(value, type, bytewise) {
+    if (type === 9 || !bytewise) return value;
+    _pv.setInt32(0, Math.round(value), true);
+    return _pv.getFloat32(0, true);
+  }
+
+  const api = { DEFS, BY_ID, BY_NAME, Encoder, Parser, crcCalc, PLANE_MODES, MODE_NUMBERS, PX4_MODES, px4Mode, px4CustomMode, paramFromWire, paramToWire };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MAV = api;
 })(typeof window !== 'undefined' ? window : globalThis);
